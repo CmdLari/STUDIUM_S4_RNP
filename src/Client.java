@@ -36,11 +36,11 @@ public class Client {
      * Method to check a string of characters
      */
     public void checkMsg(String string) throws MsgTooLongException{
-        try {
-                printMsg(string);
-            }
-        }
-        catch(MsgTooLongException ex){
+//        try {
+//                printMsg(string);
+//            }
+
+//        catch(MsgTooLongException ex){
             int maxCharacters = 120;
             if (string.length() > maxCharacters){
                 throw new MsgTooLongException();
