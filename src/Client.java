@@ -6,8 +6,8 @@ import java.net.Socket;
 public class Client {
 
     /**
-     * Erstellt einen neuen Clienten und baut die verbindung zum Server auf.
-     * @param args - 1. hostname/IP-Addresse des Servers, 2. Portnummer des Servers
+     * Makes a new client and establishes a connection to the server
+     * @param args - 1. hostname/IP-Address of the servers, 2. PortNr of the server
      */
     public static void main(String[] args) {
         String hostname = args[0];
@@ -26,31 +26,51 @@ public class Client {
 
 
     /**
+     * Method to check a string of characters received
+     * @param string string of characters
+     */
+    public void checkMsg(String string){
+        int maxCharacters = 120;
+        if (string.length() > maxCharacters){
+            System.err.println("This message exceeds length limitations.");
+        }
+        else{
+            useMsg(string);
+        }
+    }
+
+    /**
+     * Method to process a string of characters received
+     * @param string string of characters
+     */
+    public void useMsg(String string){
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    /**
      *
      */
     static void printPrompt(){
         System.out.printf("Client>>");
     }
 
-    /**
-     * Method to check a string of characters
-     */
-    public void checkMsg(String string) throws MsgTooLongException{
-//        try {
-//                printMsg(string);
-//            }
 
-//        catch(MsgTooLongException ex){
-            int maxCharacters = 120;
-            if (string.length() > maxCharacters){
-                throw new MsgTooLongException();
-        }
-    }
 
     /**
      * Method to print a string of characters
      */
-    public void printMsg(String string) throws MsgTooLongException{
+    public void printMsg(String string){
         System.out.println(string);
     }
 
