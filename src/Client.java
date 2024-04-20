@@ -3,6 +3,7 @@ import java.net.Socket;
 import java.util.Scanner;
 
 
+
 public class Client {
 
     private static final int MAX_LENGTH = 255;

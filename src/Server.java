@@ -6,7 +6,7 @@ public class Server {
 public static final int MAX_CLIENTS_NUMBER = 3;
 public static int clientCounter=0;
 
-private static String ich;
+private static String ich ="";
 
     /*
     * 1. Serversocket anlegen und auf Verbidnungen warten
@@ -23,11 +23,17 @@ private static String ich;
 
 
         try(ServerSocket serverSocket = new ServerSocket(port)){
-            while (true && clientCounter<MAX_CLIENTS_NUMBER){
-                try(Socket s = serverSocket.accept()){
-                    new ServerThread(s).run();
+
+            System.out.printf("Server auf Port %d aktiviert und bereit\n",port);
+
+            while (true){
+                try{
+                    Socket s = serverSocket.accept();
                     clientCounter++;
-                }
+                    System.out.printf("Anzahl Clienten: %2d\n",clientCounter);
+                    new ServerThread(s).start();
+
+                    System.out.printf("Warte auf nächsten CLient...\n");}
                 catch (IOException iox){
                     System.err.println(iox.getMessage());
                 }
@@ -41,6 +47,7 @@ private static String ich;
     public static void clientClosed(){
         synchronized (ich){
             clientCounter--;
+            System.out.printf("Anzahl Clienten: %2d\n",clientCounter);
         }
     }
 
