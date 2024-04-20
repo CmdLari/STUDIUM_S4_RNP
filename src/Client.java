@@ -35,12 +35,10 @@ public class Client {
             BufferedReader breader = new BufferedReader(reader)
 
         ) {
-            //TODO
             while(true){
                 // VARIABLES
                 String response=null;
                 actual_Length=0;
-
 
 
                 printPrompt();
