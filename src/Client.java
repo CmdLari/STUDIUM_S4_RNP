@@ -3,6 +3,7 @@ import java.net.Socket;
 import java.util.Scanner;
 
 
+
 public class Client {
 
     private static final int MAX_LENGTH = 255;
@@ -34,12 +35,10 @@ public class Client {
             BufferedReader breader = new BufferedReader(reader)
 
         ) {
-            //TODO
             while(true){
                 // VARIABLES
                 String response=null;
                 actual_Length=0;
-
 
 
                 printPrompt();
@@ -49,9 +48,9 @@ public class Client {
                     System.err.println("Message exceeds character limitation or is empty!");
                     continue;
                 }
-                else if(msg.equals("BYE")){
-                    break;
-                }
+//                else if(msg.equals("BYE")){
+//                    break;
+//                }
 
                 /*  Send message to server */
                 pwriter.printf("%s\n",msg);
@@ -75,6 +74,7 @@ public class Client {
 
                 /* Print serverresponse to Console//User*/
                 System.out.println(response);
+                if(response.equals("OK BYE")){break;}
             }
 
         }catch(IOException iox){
