@@ -48,9 +48,9 @@ public class Client {
                     System.err.println("Message exceeds character limitation or is empty!");
                     continue;
                 }
-                else if(msg.equals("BYE")){
-                    break;
-                }
+//                else if(msg.equals("BYE")){
+//                    break;
+//                }
 
                 /*  Send message to server */
                 pwriter.printf("%s\n",msg);
@@ -74,6 +74,7 @@ public class Client {
 
                 /* Print serverresponse to Console//User*/
                 System.out.println(response);
+                if(response.equals("OK BYE")){break;}
             }
 
         }catch(IOException iox){

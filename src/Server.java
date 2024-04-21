@@ -6,9 +6,12 @@ import java.util.List;
 
 public class Server {
 public static final int MAX_CLIENTS_NUMBER = 3;
+public static final int MAX_LENGTH = 255;
 public static int clientCounter=0;
 private static final String ich ="";
+private static ServerSocket serverSocket;
 private static boolean acceptNewConnections = true ; // Needed to handle SHUTDOWN command
+
 private static List<ServerThread> clients;
 
 
@@ -28,37 +31,45 @@ private static List<ServerThread> clients;
         clients = new ArrayList<>();
         ServerThread currentServerthread;
 
-        try(ServerSocket serverSocket = new ServerSocket(port)){
-
+        try{
+            serverSocket = new ServerSocket(port);
             System.out.printf("Server auf Port %d aktiviert und bereit\n",port);
 
-            while (true){
+            while (acceptNewConnections){
 
+                System.out.println("PING");
 
                 // Needed to handle SHUTDOWN-Command.
-                if(! acceptNewConnections) continue;
+                //if(! acceptNewConnections) continue;
 
 
                 // Only MAX_CLIENTS_NUMBER connects allowed. If already a certain number of clients are connect, do not establish new connections.
                 if(clientCounter<MAX_CLIENTS_NUMBER ) {
                     try{
-                        Socket s = serverSocket.accept();
-                        clientCounter++;
-                        System.out.printf("Number of clients: %2d\n",clientCounter);
+                            Socket s = serverSocket.accept(); // Hier wartet der Server auf neue Clienten
+                            clientCounter++;
+                            System.out.printf("Number of clients: %2d\n",clientCounter);
 
-                        // Create a new ServerThread to serve clients requests
-                        currentServerthread = new ServerThread(s,clientCounter);
-                        currentServerthread.start();
-                        clients.add(currentServerthread); // Collect all clients to Handle Shutdown Command.
-
-                        System.out.println("Waiting for next client...");}
+                            // Create a new ServerThread to serve clients requests
+                            currentServerthread = new ServerThread(s,clientCounter);
+                            currentServerthread.start();
+                            clients.add(currentServerthread); // Collect all clients to Handle Shutdown Command.
+                            System.out.println("Waiting for next client...");
+                    }
                     catch (IOException iox){
                         System.err.println(iox.getMessage());
                     }
+
                 }
 
             }
 
+            // Warte auf das ende aller verbindungen...
+            //while (!clients.isEmpty()){}
+
+            System.out.println("Server meldet sich ab - bis bald");
+        }finally {
+            serverSocket.close();
         }
 
     }
@@ -89,7 +100,11 @@ private static List<ServerThread> clients;
         for(ServerThread st : clients){
             st.initializeShutdownTimer();
         }
-
+        try{
+            serverSocket.close();}
+        catch (IOException iox){
+            System.out.println("Probleme beim SHUTDOWN close des servers");
+        }
     }
 
     private static void makeSocket(){}
