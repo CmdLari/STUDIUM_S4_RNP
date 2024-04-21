@@ -8,7 +8,7 @@ public class Server {
 public static final int MAX_CLIENTS_NUMBER = 3;
 public static final int MAX_LENGTH = 255;
 public static int clientCounter=0;
-private static final String ich ="";
+private static final String helperString ="";
 private static ServerSocket serverSocket;
 private static boolean acceptNewConnections = true ; // Needed to handle SHUTDOWN command
 
@@ -33,11 +33,11 @@ private static List<ServerThread> clients;
 
         try{
             serverSocket = new ServerSocket(port);
-            System.out.printf("Server auf Port %d aktiviert und bereit\n",port);
+            System.out.printf("Server on port %d aviable \n",port);
 
             while (acceptNewConnections){
 
-                System.out.println("PING");
+//                System.out.println("PING");
 
                 // Needed to handle SHUTDOWN-Command.
                 //if(! acceptNewConnections) continue;
@@ -55,6 +55,7 @@ private static List<ServerThread> clients;
                             currentServerthread.start();
                             clients.add(currentServerthread); // Collect all clients to Handle Shutdown Command.
                             System.out.println("Waiting for next client...");
+
                     }
                     catch (IOException iox){
                         System.err.println(iox.getMessage());
@@ -67,8 +68,9 @@ private static List<ServerThread> clients;
             // Warte auf das ende aller verbindungen...
             //while (!clients.isEmpty()){}
 
-            System.out.println("Server meldet sich ab - bis bald");
+            System.out.println("Server Socket is shutting down - See you soon!");
         }finally {
+            System.out.println("\n");
             serverSocket.close();
         }
 
@@ -78,7 +80,29 @@ private static List<ServerThread> clients;
      * Clients call this methode while disconnection from server, to enable other/further client-connections
      */
     public static void clientClosed(){
-        synchronized (ich){
+
+        synchronized (helperString){
+            if (!acceptNewConnections) {
+                clientCounter--;
+                System.out.printf("Number of clients: %2d\n", clientCounter);
+                if (clientCounter <= 0) {
+                    System.exit(0);
+                }
+            } else if ((acceptNewConnections)) {
+                clientCounter--;
+                System.out.printf("Number of clients: %2d\n", clientCounter);
+            }
+        }
+
+
+
+    }
+
+    /**
+     * Clients call this methode while disconnection from server, to enable other/further client-connections
+     */
+    public static void clientClosedBye(){
+        synchronized (helperString){
             clientCounter--;
             System.out.printf("Number of clients: %2d\n",clientCounter);
         }
@@ -92,7 +116,7 @@ private static List<ServerThread> clients;
      */
     public static void handleShutdownCommand(){
         // Stop this server from accept new Connections
-        synchronized (ich){
+        synchronized (helperString){
             acceptNewConnections = false;
         }
 
@@ -101,16 +125,11 @@ private static List<ServerThread> clients;
             st.initializeShutdownTimer();
         }
         try{
-            serverSocket.close();}
+            serverSocket.close();
+            if (clientCounter==0){
+                System.exit(0);}}
         catch (IOException iox){
-            System.out.println("Probleme beim SHUTDOWN close des servers");
+            System.out.println("Problem shutting down the server.");
         }
     }
-
-    private static void makeSocket(){}
-
-    private static void waitConnection(){}
-
-
-
 }

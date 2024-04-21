@@ -37,6 +37,7 @@ public class ServerThread extends Thread {
     public void run() {
 
         // Variables to handles client's messages
+        boolean running = true;
         int actual_Length = 0;
         char[] cbuf = null;
         String line;
@@ -49,7 +50,7 @@ public class ServerThread extends Thread {
              PrintWriter out = new PrintWriter(writer)) {
 
 
-            while (true) {
+            while (running) {
                 // After ShutdownCommand, were some commands received in last 30 sec? if not - disconnect this server/client.
 
                 if (!runtime) {
@@ -69,7 +70,9 @@ public class ServerThread extends Thread {
                         }
                         bufferedReader.read(cbuf, 0, actual_Length);
                         line = new String(cbuf);
-                        processMsg(line, out);
+
+
+                        running = processMsg(line, out);
 
 
                         // is the Shutdowntimer already set? if so, reset timer.
@@ -78,18 +81,6 @@ public class ServerThread extends Thread {
                         }
                         actual_Length=0;
                     }
-
-
-
-
-//                    /*  Get message from Client  */
-//                    while (actual_Length == 0) {
-//                        // After ShutdownCommand, were some commands received in last 30 sec? if not - disconnect this server/client.
-//                        if (!runtime) {
-//                            break;
-//                        }
-//                    }
-                    //line = bufferedReader.readLine();
 
 
 
@@ -104,7 +95,9 @@ public class ServerThread extends Thread {
             System.err.println(ioException.getMessage());
         }
 
-        System.out.printf("Serverthread %d meldet sich ab\n",id);
+        System.out.printf("Client %d timed out.\n",id);
+
+        Server.clientClosed();
 
     }
 
@@ -133,29 +126,19 @@ public class ServerThread extends Thread {
 
     }
 
-    /**
-     * Resets the Shutdown-Timer after each command that was received.
-     */
-    private void resetTimer() {
-        if (!(shutdownTimer == null)) {
-            shutdownTimer.cancel();
-            shutdownTimer.schedule(shutdownTask, SHUTDOWN_DELAY);
-        }
-    }
 
-
-    private void processMsg(String line, PrintWriter out) throws IOException {
+    private boolean processMsg(String line, PrintWriter out) throws IOException {
 
         String response = "ERROR UNKNOWN COMMAND";
 
         // Handle BYE Command
-        if ((line == null) || line.equalsIgnoreCase("BYE")) {
-            System.out.println("Client hat BYE gesendet");
+        if (line.trim().equalsIgnoreCase("BYE")) {
+            System.out.println("Client sent BYE");
             out.printf("%s", "OK BYE");
             out.flush();
-            Server.clientClosed();
-            //socket.close();
-            return;
+            //Server.clientClosedBye();
+//            socket.close();
+            return false;
         }
 
         String[] tokens = line.trim().split(" ");
@@ -166,12 +149,11 @@ public class ServerThread extends Thread {
             if(tokens[1].equals(PASSWORD)){
                 //Password Accepted
                 System.out.printf("client %2d has send SHUTDOWN-command\n",id);
-                out.printf("%s", "OK BYE");
+                out.printf("%s", "OK SHUTDOWN");
                 out.flush();
-                Server.clientClosed();
                 serverShutDown();
-                //socket.close();
-                return;
+
+                return false;
             }else{
                 out.printf("%s","ERROR Password incorrect");
                 out.flush();
@@ -179,28 +161,18 @@ public class ServerThread extends Thread {
         }
 
         // Handle all String-Based Commands
-        switch (tokens[0]) {
-            case "LOWERCASE": response = "OK "+ tokens[1].toLowerCase(); break;
-            case "UPPERCASE": response = "OK "+ tokens[1].toUpperCase();break;
-            case "REVERSE": response = "OK "+ new StringBuilder(tokens[1]).reverse(); break;
-            default:
-                response = "ERROR UNKNOWN COMMAND";
-        }
+        response = switch (tokens[0]) {
+            case "LOWERCASE" -> "OK >> " + tokens[1].toLowerCase();
+            case "UPPERCASE" -> "OK >> " + tokens[1].toUpperCase();
+            case "REVERSE" -> "OK >> " + new StringBuilder(tokens[1]).reverse();
+            default -> "ERROR UNKNOWN COMMAND";
+        };
 
 
         out.printf("%s", response);
         out.flush();
-        System.out.printf("Antwort an Client ist: %s\n", response);
-    }
-
-    private String checkPermissionShutdown(String input) {
-
-        if(input.equals(PASSWORD)){
-            serverShutDown();
-            return "OK BYE";
-        }else{
-            return "ERROR Password incorrect";
-        }
+        System.out.printf("Client said: %s\n", response);
+        return true;
     }
 
 
