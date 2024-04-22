@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 
@@ -28,10 +29,10 @@ public class Client {
             InputStream inputFromServer = s.getInputStream();
 
             //Streams made to be used for reading and writing
-            Writer writer = new OutputStreamWriter(outputToServer);
+            Writer writer = new OutputStreamWriter(outputToServer, StandardCharsets.UTF_8);
             PrintWriter pwriter = new PrintWriter(writer);
 
-            Reader reader = new InputStreamReader(inputFromServer);
+            Reader reader = new InputStreamReader(inputFromServer, StandardCharsets.UTF_8);
             BufferedReader breader = new BufferedReader(reader)
 
         ) {

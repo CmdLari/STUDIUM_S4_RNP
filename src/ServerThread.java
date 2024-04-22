@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -43,10 +44,10 @@ public class ServerThread extends Thread {
         String line;
 
         try (InputStream inputStream = socket.getInputStream();
-             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
              OutputStream outputToClient = socket.getOutputStream();
              //Streams made to be used for reading and writing
-             Writer writer = new OutputStreamWriter(outputToClient);
+             Writer writer = new OutputStreamWriter(outputToClient, StandardCharsets.UTF_8);
              PrintWriter out = new PrintWriter(writer)) {
 
 
@@ -146,17 +147,31 @@ public class ServerThread extends Thread {
         // Handle SHUTDOWN Command
         if (tokens[0].equals("SHUTDOWN")) {
             //Check Password
-            if(tokens[1].equals(PASSWORD)){
-                //Password Accepted
-                System.out.printf("client %2d has send SHUTDOWN-command\n",id);
-                out.printf("%s", "OK SHUTDOWN");
-                out.flush();
-                serverShutDown();
 
-                return false;
-            }else{
-                out.printf("%s","ERROR Password incorrect");
+            if (tokens.length == 2) {
+                if (tokens[1].equals(PASSWORD)) {
+                    //Password Accepted
+                    System.out.printf("client %2d has send SHUTDOWN-command\n", id);
+                    out.printf("%s", "OK SHUTDOWN");
+                    out.flush();
+                    serverShutDown();
+
+                    return false;
+                } else if (tokens[1] == null) {
+                    out.printf("%s", "ERROR No password entered");
+                    out.flush();
+                    return true;
+
+                } else {
+                    out.printf("%s", "ERROR Password incorrect");
+                    out.flush();
+                    return true;
+                }
+            } else {
+                out.printf("%s", "SHUTDOWN command incorrect [needs cmd + password]");
                 out.flush();
+                return true;
+
             }
         }
 
