@@ -31,6 +31,8 @@ private static List<ServerThread> clients;
         clients = new ArrayList<>();
         ServerThread currentServerthread;
 
+        boolean serverSocketClosed = false;
+
         try{
             serverSocket = new ServerSocket(port);
             System.out.printf("Server on port %d aviable \n",port);
@@ -46,21 +48,34 @@ private static List<ServerThread> clients;
                 // Only MAX_CLIENTS_NUMBER connects allowed. If already a certain number of clients are connect, do not establish new connections.
                 if(clientCounter<MAX_CLIENTS_NUMBER ) {
                     try{
-                            Socket s = serverSocket.accept(); // Hier wartet der Server auf neue Clienten
-                            clientCounter++;
-                            System.out.printf("Number of clients: %2d\n",clientCounter);
 
-                            // Create a new ServerThread to serve clients requests
-                            currentServerthread = new ServerThread(s,clientCounter);
-                            currentServerthread.start();
-                            clients.add(currentServerthread); // Collect all clients to Handle Shutdown Command.
-                            System.out.println("Waiting for next client...");
+                        if (serverSocketClosed){
+                            serverSocket = new ServerSocket(port);
+                            serverSocketClosed = false;
+                        }
+                        Socket s = serverSocket.accept(); // Hier wartet der Server auf neue Clienten
+                        clientCounter++;
+                        System.out.printf("Number of clients: %2d\n",clientCounter);
+
+                        // Create a new ServerThread to serve clients requests
+                        currentServerthread = new ServerThread(s,clientCounter);
+                        currentServerthread.start();
+                        clients.add(currentServerthread); // Collect all clients to Handle Shutdown Command.
+                        if (clientCounter < MAX_CLIENTS_NUMBER){
+                            System.out.println("Waiting for next client...");}
+                        else {
+                            System.out.println("Currently not accepting more clients");
+                        }
 
                     }
                     catch (IOException iox){
                         System.err.println(iox.getMessage());
                     }
 
+                }
+                if(clientCounter >= MAX_CLIENTS_NUMBER){
+                    serverSocket.close();
+                    serverSocketClosed = true;
                 }
 
             }

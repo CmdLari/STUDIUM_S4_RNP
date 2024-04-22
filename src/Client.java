@@ -76,10 +76,13 @@ public class Client {
                 /* Print serverresponse to Console//User*/
                 System.out.println(response);
                 if(response.equals("OK BYE")){break;}
+                if(response.equals("OK SHUTDOWN")){
+                    break;
+                }
             }
 
         }catch(IOException iox){
-            System.err.println(iox.getMessage());
+            System.err.println("Server is not accepting more Clients at this time.");
         }
     }
 

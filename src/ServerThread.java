@@ -144,6 +144,10 @@ public class ServerThread extends Thread {
 
         String[] tokens = line.trim().split(" ");
 
+        for(String s : tokens){
+            System.out.printf("\t %s\n",s);
+        }
+
         // Handle SHUTDOWN Command
         if (tokens[0].equals("SHUTDOWN")) {
             //Check Password
