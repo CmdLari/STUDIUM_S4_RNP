@@ -1,8 +1,12 @@
 import java.io.*;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.TimerTask;
+import org.apache.commons.text.StringEscapeUtils;
+
 
 
 public class ServerThread extends Thread {
@@ -69,8 +73,14 @@ public class ServerThread extends Thread {
                             System.err.println("Answer exceeds character limitation!");
                             continue; // Starts the next while-loop-iteration
                         }
-                        bufferedReader.read(cbuf, 0, actual_Length);
-                        line = new String(cbuf);
+
+
+                        // Ausfiltern von Sonderzeichen und ANSI Command Sequenzen...
+                        Charset charset = StandardCharsets.UTF_8;
+                        byte[] bytes=new byte[actual_Length];
+                        inputStream.read(bytes,0,actual_Length);
+                        line = charset.decode(ByteBuffer.wrap(bytes)).toString();
+
 
 
                         running = processMsg(line, out);
@@ -97,6 +107,7 @@ public class ServerThread extends Thread {
         }
 
         System.out.printf("Client %d timed out.\n",id);
+
 
         Server.clientClosed();
 
@@ -142,11 +153,20 @@ public class ServerThread extends Thread {
             return false;
         }
 
+
         String[] tokens = line.trim().split(" ");
 
+
+//         UNESCAPINGJAVA
         for(String s : tokens){
-            System.out.printf("\t %s\n",s);
+            String snew = StringEscapeUtils.unescapeJava(s);
+            System.out.printf("\t %s\n",snew);
         }
+
+        // NOT UNESCAPING JAVA
+//        for(String s : tokens){
+//            System.out.printf("\t %s\n",s);
+//        }
 
         // Handle SHUTDOWN Command
         if (tokens[0].equals("SHUTDOWN")) {
@@ -184,7 +204,7 @@ public class ServerThread extends Thread {
             case "LOWERCASE" -> "OK >> " + tokens[1].toLowerCase();
             case "UPPERCASE" -> "OK >> " + tokens[1].toUpperCase();
             case "REVERSE" -> "OK >> " + new StringBuilder(tokens[1]).reverse();
-            default -> "ERROR UNKNOWN COMMAND";
+            default -> "Received: " + tokens[1] + "ERROR UNKNOWN COMMAND";
         };
 
 
