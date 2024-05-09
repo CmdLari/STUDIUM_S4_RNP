@@ -148,8 +148,6 @@ public class ServerThread extends Thread {
             System.out.println("Client sent BYE");
             out.printf("%s", "OK BYE");
             out.flush();
-            //Server.clientClosedBye();
-//            socket.close();
             return false;
         }
 
@@ -158,10 +156,10 @@ public class ServerThread extends Thread {
 
 
 //         UNESCAPINGJAVA
-        for(String s : tokens){
-            String snew = StringEscapeUtils.unescapeJava(s);
-            System.out.printf("\t %s\n",snew);
-        }
+//        for(String s : tokens){
+//            String snew = StringEscapeUtils.unescapeJava(s);
+//           // System.out.printf("\t %s\n",snew);
+//        }
 
         // NOT UNESCAPING JAVA
 //        for(String s : tokens){
@@ -204,13 +202,24 @@ public class ServerThread extends Thread {
             case "LOWERCASE" -> "OK >> " + tokens[1].toLowerCase();
             case "UPPERCASE" -> "OK >> " + tokens[1].toUpperCase();
             case "REVERSE" -> "OK >> " + new StringBuilder(tokens[1]).reverse();
-            default -> "Received: " + tokens[1] + "ERROR UNKNOWN COMMAND";
+            default -> "Received: " + tokens[0] + " ERROR UNKNOWN COMMAND";
         };
 
 
-        out.printf("%s", response);
+        // Send response to Client
+        out.printf("%s\n", response);
         out.flush();
-        System.out.printf("Client said: %s\n", response);
+
+        //Print clients Request
+        System.out.printf("Request from Client %d : ",id);
+        for(String s : tokens){
+            System.out.printf("%s ",s);
+        }
+        System.out.println();
+
+        //Print Server Answer
+        System.out.printf("Response to Client %d: %s\n",id, response);
+
         return true;
     }
 
