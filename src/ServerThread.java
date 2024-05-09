@@ -6,7 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.TimerTask;
 import org.apache.commons.text.StringEscapeUtils;
-
+import syslog.Syslog;
+import syslog.SyslogException;
 
 
 public class ServerThread extends Thread {
@@ -46,6 +47,12 @@ public class ServerThread extends Thread {
         int actual_Length = 0;
         char[] cbuf = null;
         String line;
+        try {
+            Syslog.open("localhost", "Legion", 0x20);
+        } catch (SyslogException e) {
+            throw new RuntimeException(e);
+        }
+
 
         try (InputStream inputStream = socket.getInputStream();
              BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
@@ -69,8 +76,11 @@ public class ServerThread extends Thread {
                         if (actual_Length <= Server.MAX_LENGTH) {
                             cbuf = new char[actual_Length];
 
-                        } else {
-                            System.err.println("Answer exceeds character limitation!");
+                        }
+                        else {
+                            Syslog.log(1, 7, "Answer exceeds character limitation");
+//                           System.err.println("Answer exceeds character limitation!");
+                            actual_Length=0;
                             continue; // Starts the next while-loop-iteration
                         }
 
@@ -81,8 +91,6 @@ public class ServerThread extends Thread {
                         inputStream.read(bytes,0,actual_Length);
                         line = charset.decode(ByteBuffer.wrap(bytes)).toString();
 
-
-
                         running = processMsg(line, out);
 
 
@@ -90,15 +98,17 @@ public class ServerThread extends Thread {
                         if (!(shutdownTimer == null)) {
                             initializeShutdownTimer();
                         }
-                        actual_Length=0;
                     }
-
+                    //inputStream.skip(actual_Length);
+                    actual_Length=0;
 
 
 
                 } catch (IOException ioException) {
                     System.err.println(ioException.getMessage());
                     return;
+                } catch (SyslogException e) {
+                    throw new RuntimeException(e);
                 }
             }
 

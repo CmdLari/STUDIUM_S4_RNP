@@ -1,3 +1,5 @@
+package syslog;
+
 import java.lang.*;
 import java.text.*;
 import java.util.*;

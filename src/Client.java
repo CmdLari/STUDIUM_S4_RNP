@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLOutput;
 import java.util.Scanner;
 
 
@@ -8,6 +9,7 @@ import java.util.Scanner;
 public class Client {
 
     private static final int MAX_LENGTH = 255;
+    private static int packageSize = MAX_LENGTH;
 
     /**
      * Makes a new client and establishes a connection to the server
@@ -20,6 +22,16 @@ public class Client {
         String msg;
         int actual_Length; // Number of bytes send by server
         char[] cbuf;
+
+        // Read and Set the packageSize to given value
+        if(args.length==3){
+
+            int size = Integer.parseInt(args[2]);
+
+            if(size>0 && size<255){
+                packageSize = size;
+            }
+        }
 
         printInitialPrompt();
 
@@ -36,6 +48,17 @@ public class Client {
             BufferedReader breader = new BufferedReader(reader)
 
         ) {
+
+            // Apply packageSize to Socket
+            // Source: https://docs.oracle.com/javase/8/docs/api/java/net/Socket.html#setSendBufferSize-int-
+            s.setSendBufferSize(packageSize);
+
+            // Check actual buffer size
+            int actualBufferSize = s.getSendBufferSize();
+            if(actualBufferSize!=packageSize){
+                System.out.printf("The Current SendBufferSize is: %3d \n",actualBufferSize);
+            }
+
             while(true){
                 // VARIABLES
                 String response=null;
@@ -49,9 +72,10 @@ public class Client {
                     System.err.println("Message exceeds character limitation or is empty!");
                     continue;
                 }
-//                else if(msg.equals("BYE")){
-//                    break;
-//                }
+
+
+                int expectedPackageCount = msg.getBytes().length / actualBufferSize ;
+                System.out.printf("Expected number of packages: %3d\n",expectedPackageCount);
 
                 /*  Send message to server */
                 pwriter.printf("%s\n",msg);

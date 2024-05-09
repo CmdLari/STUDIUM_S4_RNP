@@ -1,27 +1,27 @@
+package syslog;
 
 import java.io.*;
 import java.net.*;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.text.SimpleDateFormat;
 
 /**
- * The Syslog class implements the UNIX syslog protocol allowing Java
+ * The syslog.Syslog class implements the UNIX syslog protocol allowing Java
  * to log messages to a specified UNIX host. Care has been taken to
  * preserve as much of the UNIX implementation as possible.
  * <br>
- * To use Syslog, simply create an instance, and use the Syslog() method
+ * To use syslog.Syslog, simply create an instance, and use the syslog.Syslog() method
  * to log your message. The class provides all the expected syslog constants.
- * For example, LOG_ERR is Syslog.LOG_ERR.
+ * For example, LOG_ERR is syslog.Syslog.LOG_ERR.
  * <br>
  *
  * Written: <a href="http://www.ice.com/time/">Tim Endres
 
  * Version: 1.2 - July 27, 1998<br>
  * Version: 1.0 - August 14, 1996<br>
- * Source: <a href="http://www.ice.com/java/syslog/index.shtml">Syslog.java
+ * Source: <a href="http://www.ice.com/java/syslog/index.shtml">syslog.Syslog.java
  * @see DatagramSocket
  * @see	InetAddress
  */
@@ -52,8 +52,8 @@ public class Syslog extends Object
     // CLASS METHODS
 
     /**
-     * Binds the Syslog class to a specified host for further logging.
-     * See the Syslog constructor for details on the parameters.
+     * Binds the syslog.Syslog class to a specified host for further logging.
+     * See the syslog.Syslog constructor for details on the parameters.
      */
     static public void
     open( String hostname, String name, int flags )
@@ -95,7 +95,7 @@ public class Syslog extends Object
 
 
     /**
-     * Creates a Syslog object instance, targeted for the UNIX host
+     * Creates a syslog.Syslog object instance, targeted for the UNIX host
      * with the hostname 'hostname' on the syslog port 'port'.
      * The only flags recognized are 'LOG_PERROR', which will log the
      * message to Java's 'System.err'.
@@ -115,7 +115,7 @@ public class Syslog extends Object
     }
 
     /**
-     * Creates a Syslog object instance, targeted for the UNIX host
+     * Creates a syslog.Syslog object instance, targeted for the UNIX host
      * with the hostname 'hostname' on the syslog port 'port'.
      * The only flags recognized are 'LOG_PERROR', which will log the
      * message to Java's 'System.err'.
@@ -146,9 +146,7 @@ public class Syslog extends Object
         this.initialize();
     }
 
-    private void
-    initialize()
-            throws SyslogException
+    private void initialize() throws SyslogException
     {
         try {
             this.socket = new DatagramSocket();
@@ -195,7 +193,7 @@ public class Syslog extends Object
 
     /**
      * Use this method to log your syslog messages. The facility and
-     * level are the same as their UNIX counterparts, and the Syslog
+     * level are the same as their UNIX counterparts, and the syslog.Syslog
      * class provides constants for these fields. The msg is what is
      * actually logged.
      */
@@ -208,7 +206,7 @@ public class Syslog extends Object
 
     /**
      * Use this method to log your syslog messages. The facility and
-     * level are the same as their UNIX counterparts, and the Syslog
+     * level are the same as their UNIX counterparts, and the syslog.Syslog
      * class provides constants for these fields. The msg is what is
      * actually logged.
      */
@@ -221,7 +219,7 @@ public class Syslog extends Object
 
     /**
      * Use this method to log your syslog messages. The facility and
-     * level are the same as their UNIX counterparts, and the Syslog
+     * level are the same as their UNIX counterparts, and the syslog.Syslog
      * class provides constants for these fields. The msg is what is
      * actually logged.
      */
@@ -245,7 +243,7 @@ public class Syslog extends Object
 
     /**
      * Use this method to log your syslog messages. The facility and
-     * level are the same as their UNIX counterparts, and the Syslog
+     * level are the same as their UNIX counterparts, and the syslog.Syslog
      * class provides constants for these fields. The msg is what is
      * actually logged.
      */
@@ -269,7 +267,7 @@ public class Syslog extends Object
 
     /**
      * Use this method to log your syslog messages. The facility and
-     * level are the same as their UNIX counterparts, and the Syslog
+     * level are the same as their UNIX counterparts, and the syslog.Syslog
      * class provides constants for these fields. The msg is what is
      * actually logged.
      */

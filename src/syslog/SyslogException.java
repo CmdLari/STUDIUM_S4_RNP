@@ -1,3 +1,4 @@
+package syslog;
 
 import java.lang.Exception;
 
