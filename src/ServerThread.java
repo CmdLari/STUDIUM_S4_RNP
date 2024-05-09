@@ -153,13 +153,14 @@ public class ServerThread extends Thread {
     }
 
 
-    private boolean processMsg(String line, PrintWriter out) throws IOException {
+    private boolean processMsg(String line, PrintWriter out) throws IOException, SyslogException {
 
         String response = "ERROR UNKNOWN COMMAND";
 
         // Handle BYE Command
         if (line.trim().equalsIgnoreCase("BYE")) {
-            System.out.println("Client sent BYE");
+            Syslog.log(1, 7, "Client sent BYE");
+//            System.out.println("Client sent BYE");
             out.printf("%s", "OK BYE");
             out.flush();
             return false;
@@ -187,24 +188,28 @@ public class ServerThread extends Thread {
             if (tokens.length == 2) {
                 if (tokens[1].equals(PASSWORD)) {
                     //Password Accepted
-                    System.out.printf("client %2d has send SHUTDOWN-command\n", id);
+//                    System.out.printf("client %2d has send SHUTDOWN-command\n", id);
+                    Syslog.log(1, 7, "client %2d has send SHUTDOWN-command\n"+id);
                     out.printf("%s", "OK SHUTDOWN");
                     out.flush();
                     serverShutDown();
 
                     return false;
                 } else if (tokens[1] == null) {
-                    out.printf("%s", "ERROR No password entered");
+//                    out.printf("%s", "ERROR No password entered");
+                    Syslog.log(1, 7, "ERROR No password entered");
                     out.flush();
                     return true;
 
                 } else {
-                    out.printf("%s", "ERROR Password incorrect");
+//                    out.printf("%s", "ERROR Password incorrect");
+                    Syslog.log(1, 7, "ERROR Password incorrect");
                     out.flush();
                     return true;
                 }
             } else {
-                out.printf("%s", "SHUTDOWN command incorrect [needs cmd + password]");
+//                out.printf("%s", "SHUTDOWN command incorrect [needs cmd + password]");
+                Syslog.log(1, 7, "SHUTDOWN command incorrect [needs cmd + password]");
                 out.flush();
                 return true;
 
@@ -225,14 +230,17 @@ public class ServerThread extends Thread {
         out.flush();
 
         //Print clients Request
-        System.out.printf("Request from Client %d : ",id);
+//        System.out.printf("Request from Client %d : ",id);
+        Syslog.log(1, 7, "Request from Client %d : "+id);
         for(String s : tokens){
-            System.out.printf("%s ",s);
+            Syslog.log(1, 7, s);
+//            System.out.printf("%s ",s);
         }
         System.out.println();
 
         //Print Server Answer
         System.out.printf("Response to Client %d: %s\n",id, response);
+        Syslog.log(1, 7, "Response to Client"+id+" "+response+"\n");
 
         return true;
     }
