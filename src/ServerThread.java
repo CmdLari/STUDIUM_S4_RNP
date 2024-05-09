@@ -6,7 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.TimerTask;
 import org.apache.commons.text.StringEscapeUtils;
-
+import syslog.Syslog;
+import syslog.SyslogException;
 
 
 public class ServerThread extends Thread {
@@ -46,6 +47,12 @@ public class ServerThread extends Thread {
         int actual_Length = 0;
         char[] cbuf = null;
         String line;
+        try {
+            Syslog.open("localhost", "Legion", 0x20);
+        } catch (SyslogException e) {
+            throw new RuntimeException(e);
+        }
+
 
         try (InputStream inputStream = socket.getInputStream();
              BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
@@ -65,12 +72,19 @@ public class ServerThread extends Thread {
 
                     actual_Length = inputStream.available(); // Checks if stream from Server ist available and how many bytes are ready to be read
 
+
+
                     if (actual_Length > 0) {
+                        System.out.println(actual_Length);
                         if (actual_Length <= Server.MAX_LENGTH) {
                             cbuf = new char[actual_Length];
 
-                        } else {
-                            System.err.println("Answer exceeds character limitation!");
+                        }
+                        else {
+                            Syslog.log(1, 7, "Answer exceeds character limitation");
+                            out.printf("%s", "Answer exceeds character limitation");
+                            out.flush();
+                            inputStream.skip(actual_Length); // input stream will be discarded when limitation is exceeded
                             continue; // Starts the next while-loop-iteration
                         }
 
@@ -81,8 +95,6 @@ public class ServerThread extends Thread {
                         inputStream.read(bytes,0,actual_Length);
                         line = charset.decode(ByteBuffer.wrap(bytes)).toString();
 
-
-
                         running = processMsg(line, out);
 
 
@@ -90,15 +102,14 @@ public class ServerThread extends Thread {
                         if (!(shutdownTimer == null)) {
                             initializeShutdownTimer();
                         }
-                        actual_Length=0;
                     }
-
-
 
 
                 } catch (IOException ioException) {
                     System.err.println(ioException.getMessage());
                     return;
+                } catch (SyslogException e) {
+                    throw new RuntimeException(e);
                 }
             }
 
@@ -106,8 +117,11 @@ public class ServerThread extends Thread {
             System.err.println(ioException.getMessage());
         }
 
-        System.out.printf("Client %d timed out.\n",id);
-
+        try {
+            Syslog.log(1, 7, "Client %d timed out. " + id);
+        } catch (SyslogException e) {
+            throw new RuntimeException(e);
+        }
 
         Server.clientClosed();
 
@@ -139,17 +153,16 @@ public class ServerThread extends Thread {
     }
 
 
-    private boolean processMsg(String line, PrintWriter out) throws IOException {
+    private boolean processMsg(String line, PrintWriter out) throws IOException, SyslogException {
 
         String response = "ERROR UNKNOWN COMMAND";
 
         // Handle BYE Command
         if (line.trim().equalsIgnoreCase("BYE")) {
-            System.out.println("Client sent BYE");
+            Syslog.log(1, 7, "Client sent BYE");
+//            System.out.println("Client sent BYE");
             out.printf("%s", "OK BYE");
             out.flush();
-            //Server.clientClosedBye();
-//            socket.close();
             return false;
         }
 
@@ -158,10 +171,10 @@ public class ServerThread extends Thread {
 
 
 //         UNESCAPINGJAVA
-        for(String s : tokens){
-            String snew = StringEscapeUtils.unescapeJava(s);
-            System.out.printf("\t %s\n",snew);
-        }
+//        for(String s : tokens){
+//            String snew = StringEscapeUtils.unescapeJava(s);
+//           // System.out.printf("\t %s\n",snew);
+//        }
 
         // NOT UNESCAPING JAVA
 //        for(String s : tokens){
@@ -175,24 +188,28 @@ public class ServerThread extends Thread {
             if (tokens.length == 2) {
                 if (tokens[1].equals(PASSWORD)) {
                     //Password Accepted
-                    System.out.printf("client %2d has send SHUTDOWN-command\n", id);
+//                    System.out.printf("client %2d has send SHUTDOWN-command\n", id);
+                    Syslog.log(1, 7, "client %2d has send SHUTDOWN-command\n"+id);
                     out.printf("%s", "OK SHUTDOWN");
                     out.flush();
                     serverShutDown();
 
                     return false;
                 } else if (tokens[1] == null) {
-                    out.printf("%s", "ERROR No password entered");
+//                    out.printf("%s", "ERROR No password entered");
+                    Syslog.log(1, 7, "ERROR No password entered");
                     out.flush();
                     return true;
 
                 } else {
-                    out.printf("%s", "ERROR Password incorrect");
+//                    out.printf("%s", "ERROR Password incorrect");
+                    Syslog.log(1, 7, "ERROR Password incorrect");
                     out.flush();
                     return true;
                 }
             } else {
-                out.printf("%s", "SHUTDOWN command incorrect [needs cmd + password]");
+//                out.printf("%s", "SHUTDOWN command incorrect [needs cmd + password]");
+                Syslog.log(1, 7, "SHUTDOWN command incorrect [needs cmd + password]");
                 out.flush();
                 return true;
 
@@ -204,13 +221,27 @@ public class ServerThread extends Thread {
             case "LOWERCASE" -> "OK >> " + tokens[1].toLowerCase();
             case "UPPERCASE" -> "OK >> " + tokens[1].toUpperCase();
             case "REVERSE" -> "OK >> " + new StringBuilder(tokens[1]).reverse();
-            default -> "Received: " + tokens[1] + "ERROR UNKNOWN COMMAND";
+            default -> "Received: " + tokens[0] + " ERROR UNKNOWN COMMAND";
         };
 
 
-        out.printf("%s", response);
+        // Send response to Client
+        out.printf("%s\n", response);
         out.flush();
-        System.out.printf("Client said: %s\n", response);
+
+        //Print clients Request
+//        System.out.printf("Request from Client %d : ",id);
+        Syslog.log(1, 7, "Request from Client %d : "+id);
+        for(String s : tokens){
+            Syslog.log(1, 7, s);
+//            System.out.printf("%s ",s);
+        }
+        System.out.println();
+
+        //Print Server Answer
+        System.out.printf("Response to Client %d: %s\n",id, response);
+        Syslog.log(1, 7, "Response to Client"+id+" "+response+"\n");
+
         return true;
     }
 
