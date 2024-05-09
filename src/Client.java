@@ -75,11 +75,22 @@ public class Client {
 
 
                 int expectedPackageCount = msg.getBytes().length / actualBufferSize ;
-                System.out.printf("Expected number of packages: %3d\n",expectedPackageCount);
+
+
+                System.out.printf("Expected number of packages: %3d - %d\n",expectedPackageCount, expectedPackageCount+1);
 
                 /*  Send message to server */
                 pwriter.printf("%s\n",msg);
                 pwriter.flush();
+
+
+                // Versuch ByteWeise zu Schreiben , funktioniert nicht, erstes Byte wird geschrieben, aber der rest läuft paket.
+//                for(byte b:msg.getBytes()){
+//                    outputToServer.write(b);
+//                   // outputToServer.flush();
+//                }
+//                outputToServer.write("\n".getBytes());
+//                outputToServer.flush();
 
                 /*  Get message//response from Server  */
 

@@ -72,15 +72,19 @@ public class ServerThread extends Thread {
 
                     actual_Length = inputStream.available(); // Checks if stream from Server ist available and how many bytes are ready to be read
 
+
+
                     if (actual_Length > 0) {
+                        System.out.println(actual_Length);
                         if (actual_Length <= Server.MAX_LENGTH) {
                             cbuf = new char[actual_Length];
 
                         }
                         else {
                             Syslog.log(1, 7, "Answer exceeds character limitation");
-//                           System.err.println("Answer exceeds character limitation!");
-                            actual_Length=0;
+                            out.printf("%s", "Answer exceeds character limitation");
+                            out.flush();
+                            inputStream.skip(actual_Length); // input stream will be discarded when limitation is exceeded
                             continue; // Starts the next while-loop-iteration
                         }
 
@@ -99,9 +103,6 @@ public class ServerThread extends Thread {
                             initializeShutdownTimer();
                         }
                     }
-                    //inputStream.skip(actual_Length);
-                    actual_Length=0;
-
 
 
                 } catch (IOException ioException) {
@@ -116,8 +117,11 @@ public class ServerThread extends Thread {
             System.err.println(ioException.getMessage());
         }
 
-        System.out.printf("Client %d timed out.\n",id);
-
+        try {
+            Syslog.log(1, 7, "Client %d timed out. " + id);
+        } catch (SyslogException e) {
+            throw new RuntimeException(e);
+        }
 
         Server.clientClosed();
 
