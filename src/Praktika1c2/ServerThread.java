@@ -1,3 +1,5 @@
+package Praktika1c2;
+
 import java.io.*;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -5,9 +7,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.TimerTask;
-import org.apache.commons.text.StringEscapeUtils;
-import syslog.Syslog;
-import syslog.SyslogException;
+
+import Praktika1c2.syslog.Syslog;
+import Praktika1c2.syslog.SyslogException;
 
 
 public class ServerThread extends Thread {
@@ -24,10 +26,10 @@ public class ServerThread extends Thread {
 
 
     /**
-     * Constructor for a new ServerThread.
+     * Constructor for a new Praktika1c2.ServerThread.
      *
      * @param clientSocket establish the connection to client
-     * @param id           ID Number for this ServerThread
+     * @param id           ID Number for this Praktika1c2.ServerThread
      */
     public ServerThread(Socket clientSocket, int id) {
         this.id = id;
@@ -35,8 +37,8 @@ public class ServerThread extends Thread {
     }
 
     /**
-     * ServerThread's Main Methode
-     * Opens connection to the Client.
+     * Praktika1c2.ServerThread's Praktika1c2.Main Methode
+     * Opens connection to the Praktika1c2.Client.
      * Waits for messages and proceeds them.
      * Checks if the Shutdown command ends the loop.
      */
@@ -70,7 +72,7 @@ public class ServerThread extends Thread {
                 }
                 try {
 
-                    actual_Length = inputStream.available(); // Checks if stream from Server ist available and how many bytes are ready to be read
+                    actual_Length = inputStream.available(); // Checks if stream from Praktika1c2.Server ist available and how many bytes are ready to be read
 
 
 
@@ -118,7 +120,7 @@ public class ServerThread extends Thread {
         }
 
         try {
-            Syslog.log(1, 7, "Client %d timed out. " + id);
+            Syslog.log(1, 7, "Praktika1c2.Client %d timed out. " + id);
         } catch (SyslogException e) {
             throw new RuntimeException(e);
         }
@@ -129,8 +131,8 @@ public class ServerThread extends Thread {
 
 
     /**
-     * Inform the "Boss" Server, that a SHUTDOWN command was received.
-     * The Server has to notice all ServerThreads, that a SHUTDOWN command was received.
+     * Inform the "Boss" Praktika1c2.Server, that a SHUTDOWN command was received.
+     * The Praktika1c2.Server has to notice all ServerThreads, that a SHUTDOWN command was received.
      */
     private static void serverShutDown() {
         Server.handleShutdownCommand();
@@ -159,8 +161,8 @@ public class ServerThread extends Thread {
 
         // Handle BYE Command
         if (line.trim().equalsIgnoreCase("BYE")) {
-            Syslog.log(1, 7, "Client sent BYE");
-//            System.out.println("Client sent BYE");
+            Syslog.log(1, 7, "Praktika1c2.Client sent BYE");
+//            System.out.println("Praktika1c2.Client sent BYE");
             out.printf("%s", "OK BYE");
             out.flush();
             return false;
@@ -225,22 +227,22 @@ public class ServerThread extends Thread {
         };
 
 
-        // Send response to Client
+        // Send response to Praktika1c2.Client
         out.printf("%s\n", response);
         out.flush();
 
         //Print clients Request
-//        System.out.printf("Request from Client %d : ",id);
-        Syslog.log(1, 7, "Request from Client %d : "+id);
+//        System.out.printf("Request from Praktika1c2.Client %d : ",id);
+        Syslog.log(1, 7, "Request from Praktika1c2.Client %d : "+id);
         for(String s : tokens){
             Syslog.log(1, 7, s);
 //            System.out.printf("%s ",s);
         }
         System.out.println();
 
-        //Print Server Answer
-        System.out.printf("Response to Client %d: %s\n",id, response);
-        Syslog.log(1, 7, "Response to Client"+id+" "+response+"\n");
+        //Print Praktika1c2.Server Answer
+        System.out.printf("Response to Praktika1c2.Client %d: %s\n",id, response);
+        Syslog.log(1, 7, "Response to Praktika1c2.Client"+id+" "+response+"\n");
 
         return true;
     }

@@ -1,7 +1,8 @@
+package Praktika1c2;
+
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLOutput;
 import java.util.Scanner;
 
 
@@ -36,7 +37,7 @@ public class Client {
         printInitialPrompt();
 
         try(Socket s = new Socket(hostname,port);
-            //Communication Client-Server
+            //Communication Praktika1c2.Client-Praktika1c2.Server
             OutputStream outputToServer = s.getOutputStream();
             InputStream inputFromServer = s.getInputStream();
 
@@ -92,10 +93,10 @@ public class Client {
 //                outputToServer.write("\n".getBytes());
 //                outputToServer.flush();
 
-                /*  Get message//response from Server  */
+                /*  Get message//response from Praktika1c2.Server  */
 
                 while(actual_Length==0){
-                    actual_Length = inputFromServer.available(); // Checks if stream from Server ist available and how many bytes are ready to be read
+                    actual_Length = inputFromServer.available(); // Checks if stream from Praktika1c2.Server ist available and how many bytes are ready to be read
 
                     if (actual_Length <= MAX_LENGTH) {
                         cbuf = new char[actual_Length];
@@ -117,7 +118,7 @@ public class Client {
             }
 
         }catch(IOException iox){
-            System.err.println("Server is not accepting more Clients at this time.");
+            System.err.println("Praktika1c2.Server is not accepting more Clients at this time.");
         }
     }
 
@@ -126,7 +127,7 @@ public class Client {
      * Prints a simple Greeting and explanation of usage to console.
      */
     private static void printInitialPrompt() {
-        System.out.println("Welcome to the greatest Client!");
+        System.out.println("Welcome to the greatest Praktika1c2.Client!");
         System.out.println("Usage: ");
         System.out.println("\t LOWERCASE <string>  - Transform string into lower case");
         System.out.println("\t UPPERCASE <string>  - Capitalise string");
@@ -142,7 +143,7 @@ public class Client {
      *
      */
     static void printPrompt(){
-        System.out.print("Client>>");
+        System.out.print("Praktika1c2.Client>>");
     }
 
     /**

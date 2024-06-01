@@ -180,7 +180,7 @@ digraph sshTunnel{
         
         Zuhause[label="Zuhause\n Unser PC"]
 
-        Client->Zuhause[dir=none];
+        Praktika1c2.Client->Zuhause[dir=none];
    }
 
     subgraph cluster_HAW {
@@ -197,8 +197,8 @@ digraph sshTunnel{
 
             subgraph cluster_Docker{
                 label = "Docker"
-                Server [label="Unser Java\nServer"];
-                Docker -> Server [dir=none];
+                Praktika1c2.Server [label="Unser Java\nServer"];
+                Docker -> Praktika1c2.Server [dir=none];
             }
             
             VM -> Docker [dir=none];
@@ -220,7 +220,7 @@ digraph sshTunnel{
 
 # Anpassungen am Code 
 
-## Server 
+## Praktika1c2.Server 
 
 ### Syslog 
 
@@ -253,11 +253,11 @@ class Syslog{
     + Syslog(String name, int flags ): Syslog
     + Syslog(String hostname, int port, String name, int flags): Syslog
     - initialize()
-    + syslog( int fac, int pri, String msg )
-    + syslog( InetAddress addr, int fac, int pri, String msg )
-    + syslog( String hostname, int fac, int pri, String msg )
-    + syslog( String hostname, int port, int fac, int pri, String msg )
-    + syslog( InetAddress addr, int port, int fac, int pri, String msg )
+    + Praktika1c2.syslog( int fac, int pri, String msg )
+    + Praktika1c2.syslog( InetAddress addr, int fac, int pri, String msg )
+    + Praktika1c2.syslog( String hostname, int fac, int pri, String msg )
+    + Praktika1c2.syslog( String hostname, int port, int fac, int pri, String msg )
+    + Praktika1c2.syslog( InetAddress addr, int port, int fac, int pri, String msg )
 }
 
 @enduml
@@ -307,7 +307,7 @@ https://stackoverflow.com/questions/23935141/how-to-copy-docker-images-from-one-
 ```bash 
 docker save -o <path for generated tar file> <image name>
 
-scp /path/of/source user@DESTINATION-Server:/path/to/destination
+scp /path/of/source user@DESTINATION-Praktika1c2.Server:/path/to/destination
 
 docker save -o <path for generated tar file> <image name>
 ```

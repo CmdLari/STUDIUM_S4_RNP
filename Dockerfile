@@ -14,5 +14,5 @@ COPY out/production/RN_Praktika/ /app
 WORKDIR /app
 
 # Führe einen Befehl im Container aus.
-# Wir starten den Server, auf Port 80
-CMD java Server 80
+# Wir starten den Praktika1c2.Server, auf Port 80
+CMD java Praktika1c2.Server 80

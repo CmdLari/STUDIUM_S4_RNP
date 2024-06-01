@@ -1,4 +1,4 @@
-package syslog;
+package Praktika1c2.syslog;
 
 import java.lang.*;
 import java.text.*;
@@ -54,7 +54,7 @@ import java.util.*;
 
         public static final int LOG_PID		= 0x01;	/* log the pid with each message */
         public static final int LOG_CONS	= 0x02;	/* log on the console if errors in sending */
-        public static final int LOG_ODELAY	= 0x04;	/* delay open until first syslog() (default) */
+        public static final int LOG_ODELAY	= 0x04;	/* delay open until first Praktika1c2.syslog() (default) */
         public static final int LOG_NDELAY	= 0x08;	/* don't delay open */
         public static final int LOG_NOWAIT	= 0x10;	/* don't wait for console forks: DEPRECATED */
         public static final int LOG_PERROR	= 0x20;	/* log to stderr as well */

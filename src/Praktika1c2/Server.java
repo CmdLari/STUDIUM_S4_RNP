@@ -1,3 +1,5 @@
+package Praktika1c2;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -35,7 +37,7 @@ private static List<ServerThread> clients;
 
         try{
             serverSocket = new ServerSocket(port);
-            System.out.printf("Server on port %d aviable \n",port);
+            System.out.printf("Praktika1c2.Server on port %d aviable \n",port);
 
             while (acceptNewConnections){
 
@@ -53,11 +55,11 @@ private static List<ServerThread> clients;
                             serverSocket = new ServerSocket(port);
                             serverSocketClosed = false;
                         }
-                        Socket s = serverSocket.accept(); // Hier wartet der Server auf neue Clienten
+                        Socket s = serverSocket.accept(); // Hier wartet der Praktika1c2.Server auf neue Clienten
                         clientCounter++;
                         System.out.printf("Number of clients: %2d\n",clientCounter);
 
-                        // Create a new ServerThread to serve clients requests
+                        // Create a new Praktika1c2.ServerThread to serve clients requests
                         currentServerthread = new ServerThread(s,clientCounter);
                         currentServerthread.start();
                         clients.add(currentServerthread); // Collect all clients to Handle Shutdown Command.
@@ -83,7 +85,7 @@ private static List<ServerThread> clients;
             // Warte auf das ende aller verbindungen...
             //while (!clients.isEmpty()){}
 
-            System.out.println("Server Socket is shutting down - See you soon!");
+            System.out.println("Praktika1c2.Server Socket is shutting down - See you soon!");
         }finally {
             System.out.println("\n");
             serverSocket.close();
@@ -125,9 +127,9 @@ private static List<ServerThread> clients;
 
 
     /**
-     * A Client call this methode to the server to initialize the SHUTDOWN procedure.
+     * A Praktika1c2.Client call this methode to the server to initialize the SHUTDOWN procedure.
      * First of all, the server refuses new connections.
-     * Then the Server tell all the ServerThreads to start the 30-sec timer.
+     * Then the Praktika1c2.Server tell all the ServerThreads to start the 30-sec timer.
      */
     public static void handleShutdownCommand(){
         // Stop this server from accept new Connections

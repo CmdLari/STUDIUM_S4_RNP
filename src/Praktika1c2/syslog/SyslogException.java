@@ -1,4 +1,4 @@
-package syslog;
+package Praktika1c2.syslog;
 
 import java.lang.Exception;
 

@@ -1,4 +1,4 @@
-package syslog;
+package Praktika1c2.syslog;
 
 import java.io.*;
 import java.net.*;
@@ -8,20 +8,20 @@ import java.util.TimeZone;
 import java.text.SimpleDateFormat;
 
 /**
- * The syslog.Syslog class implements the UNIX syslog protocol allowing Java
+ * The Praktika1c2.syslog.Syslog class implements the UNIX Praktika1c2.syslog protocol allowing Java
  * to log messages to a specified UNIX host. Care has been taken to
  * preserve as much of the UNIX implementation as possible.
  * <br>
- * To use syslog.Syslog, simply create an instance, and use the syslog.Syslog() method
- * to log your message. The class provides all the expected syslog constants.
- * For example, LOG_ERR is syslog.Syslog.LOG_ERR.
+ * To use Praktika1c2.syslog.Syslog, simply create an instance, and use the Praktika1c2.syslog.Syslog() method
+ * to log your message. The class provides all the expected Praktika1c2.syslog constants.
+ * For example, LOG_ERR is Praktika1c2.syslog.Syslog.LOG_ERR.
  * <br>
  *
  * Written: <a href="http://www.ice.com/time/">Tim Endres
 
  * Version: 1.2 - July 27, 1998<br>
  * Version: 1.0 - August 14, 1996<br>
- * Source: <a href="http://www.ice.com/java/syslog/index.shtml">syslog.Syslog.java
+ * Source: <a href="http://www.ice.com/java/syslog/index.shtml">Praktika1c2.syslog.Syslog.java
  * @see DatagramSocket
  * @see	InetAddress
  */
@@ -52,8 +52,8 @@ public class Syslog extends Object
     // CLASS METHODS
 
     /**
-     * Binds the syslog.Syslog class to a specified host for further logging.
-     * See the syslog.Syslog constructor for details on the parameters.
+     * Binds the Praktika1c2.syslog.Syslog class to a specified host for further logging.
+     * See the Praktika1c2.syslog.Syslog constructor for details on the parameters.
      */
     static public void
     open( String hostname, String name, int flags )
@@ -71,7 +71,7 @@ public class Syslog extends Object
     }
 
     /**
-     * Performs a syslog to the currently bound syslog host.
+     * Performs a Praktika1c2.syslog to the currently bound Praktika1c2.syslog host.
      */
     static public void
     log( int fac, int lvl, String msg )
@@ -85,7 +85,7 @@ public class Syslog extends Object
     }
 
     /**
-     * Unbinds the current syslog host.
+     * Unbinds the current Praktika1c2.syslog host.
      */
     static public void
     close()
@@ -95,8 +95,8 @@ public class Syslog extends Object
 
 
     /**
-     * Creates a syslog.Syslog object instance, targeted for the UNIX host
-     * with the hostname 'hostname' on the syslog port 'port'.
+     * Creates a Praktika1c2.syslog.Syslog object instance, targeted for the UNIX host
+     * with the hostname 'hostname' on the Praktika1c2.syslog port 'port'.
      * The only flags recognized are 'LOG_PERROR', which will log the
      * message to Java's 'System.err'.
      */
@@ -115,8 +115,8 @@ public class Syslog extends Object
     }
 
     /**
-     * Creates a syslog.Syslog object instance, targeted for the UNIX host
-     * with the hostname 'hostname' on the syslog port 'port'.
+     * Creates a Praktika1c2.syslog.Syslog object instance, targeted for the UNIX host
+     * with the hostname 'hostname' on the Praktika1c2.syslog port 'port'.
      * The only flags recognized are 'LOG_PERROR', which will log the
      * message to Java's 'System.err'.
      */
@@ -154,7 +154,7 @@ public class Syslog extends Object
         catch ( SocketException ex )
         {
             String message =
-                    "error creating syslog udp socket: "
+                    "error creating Praktika1c2.syslog udp socket: "
                             + ex.getMessage();
 
             throw new SyslogException( message );
@@ -192,8 +192,8 @@ public class Syslog extends Object
     }
 
     /**
-     * Use this method to log your syslog messages. The facility and
-     * level are the same as their UNIX counterparts, and the syslog.Syslog
+     * Use this method to log your Praktika1c2.syslog messages. The facility and
+     * level are the same as their UNIX counterparts, and the Praktika1c2.syslog.Syslog
      * class provides constants for these fields. The msg is what is
      * actually logged.
      */
@@ -205,8 +205,8 @@ public class Syslog extends Object
     }
 
     /**
-     * Use this method to log your syslog messages. The facility and
-     * level are the same as their UNIX counterparts, and the syslog.Syslog
+     * Use this method to log your Praktika1c2.syslog messages. The facility and
+     * level are the same as their UNIX counterparts, and the Praktika1c2.syslog.Syslog
      * class provides constants for these fields. The msg is what is
      * actually logged.
      */
@@ -218,8 +218,8 @@ public class Syslog extends Object
     }
 
     /**
-     * Use this method to log your syslog messages. The facility and
-     * level are the same as their UNIX counterparts, and the syslog.Syslog
+     * Use this method to log your Praktika1c2.syslog messages. The facility and
+     * level are the same as their UNIX counterparts, and the Praktika1c2.syslog.Syslog
      * class provides constants for these fields. The msg is what is
      * actually logged.
      */
@@ -242,8 +242,8 @@ public class Syslog extends Object
     }
 
     /**
-     * Use this method to log your syslog messages. The facility and
-     * level are the same as their UNIX counterparts, and the syslog.Syslog
+     * Use this method to log your Praktika1c2.syslog messages. The facility and
+     * level are the same as their UNIX counterparts, and the Praktika1c2.syslog.Syslog
      * class provides constants for these fields. The msg is what is
      * actually logged.
      */
@@ -266,8 +266,8 @@ public class Syslog extends Object
     }
 
     /**
-     * Use this method to log your syslog messages. The facility and
-     * level are the same as their UNIX counterparts, and the syslog.Syslog
+     * Use this method to log your Praktika1c2.syslog messages. The facility and
+     * level are the same as their UNIX counterparts, and the Praktika1c2.syslog.Syslog
      * class provides constants for these fields. The msg is what is
      * actually logged.
      */

@@ -1,3 +1,5 @@
+package Praktika1c2;
+
 public class Main {
 
     private static final String SERVER_IP = "127.0.0.1";
