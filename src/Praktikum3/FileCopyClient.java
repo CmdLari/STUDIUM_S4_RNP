@@ -7,6 +7,7 @@ package Praktikum3;
  */
 
 import java.io.*;
+import java.util.*;
 
 public class FileCopyClient extends Thread {
 
@@ -28,11 +29,15 @@ public class FileCopyClient extends Thread {
 
   public long serverErrorRate;
 
+  public List<FCpacket> allPackages ;
+
   // -------- Variables
   // current default timeout in nanoseconds
   private long timeoutValue = 100000000L;
 
   // ... ToDo
+
+  Map<Integer, FCpacket> packagesSync;
 
 
   // Constructor
@@ -84,21 +89,45 @@ public class FileCopyClient extends Thread {
   }
 
 
-  private void readFile(){
+  private void readFile(String sourcePath) {
 
-    // TODO
+    TreeMap<Integer, FCpacket> packages = new TreeMap<Integer, FCpacket>();
 
-    //1. fileExists
-    // True:
-      // inputstream.from(file)
-      // for (j=0; j<file.size; j+= curent package.size)
-      //    for (i=0; i<package.size; i++)
-      //      read byte from file, put byte to package
-      //    put pkg in allPackages[] + set seqnum
+    byte[] byteArray = new byte[UDP_PACKET_SIZE - 8];
 
-    // False: throw Exception -> Programm Ende
+    try {
+      InputStream inputStream = new FileInputStream(sourcePath);
+
+      byte[] currentBuffer = new byte[UDP_PACKET_SIZE - 8];
+
+      int pgkCounter = 1;
+
+      int offset = 0;
+      long cursor = 0;
+      int actualLength =0;
+
+      File file = new File(sourcePath);
+      long fileLength = file.length();
+
+      makeControlPacket();
+
+      while (cursor < fileLength) {
+        actualLength = inputStream.read(currentBuffer, offset, UDP_PACKET_SIZE - 8);
+        offset += actualLength;
+        cursor += offset;
+        FCpacket currentPkg = new FCpacket(pgkCounter, currentBuffer, actualLength);
+        pgkCounter++;
+        packages.put(pgkCounter, currentPkg);
+      }
+
+      packagesSync = Collections.synchronizedMap(packages);
+
+    } catch (FileNotFoundException e) {
+      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
-
   /**
   *
   * Timer Operations
