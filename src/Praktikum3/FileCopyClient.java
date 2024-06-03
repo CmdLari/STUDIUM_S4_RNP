@@ -7,6 +7,10 @@ package Praktikum3;
  */
 
 import java.io.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
 import java.util.*;
 
 public class FileCopyClient extends Thread {
@@ -14,7 +18,7 @@ public class FileCopyClient extends Thread {
   // -------- Constants
   public final static boolean TEST_OUTPUT_MODE = false;
 
-  public final int SERVER_PORT = 23000;
+  public final int SERVER_PORT = 8080;
 
   public final int UDP_PACKET_SIZE = 1008;
 
@@ -29,15 +33,13 @@ public class FileCopyClient extends Thread {
 
   public long serverErrorRate;
 
-  public List<FCpacket> allPackages ;
-
   // -------- Variables
   // current default timeout in nanoseconds
   private long timeoutValue = 100000000L;
 
   // ... ToDo
 
-  Map<Integer, FCpacket> packagesSync;
+  Map<Integer, FCpacket> packagesSync; // Synchronisierte Liste aller Pakete
 
 
   // Constructor
@@ -51,26 +53,131 @@ public class FileCopyClient extends Thread {
 
   }
 
-  public void runFileCopyClient() {
+  public void runFileCopyClient() throws SocketException {
 
-    readFile(sourcePath);
 
-      // ToDo!!
+
+      // DONE:
       // 1. Datei einlesen
-        // 1.1 check file exists
-
-
+      //    1.1 check file exists
       // 2. Make Packages from File
       // Make List Of All Packages
+      readFile(sourcePath);
+      SendAllPackages();
 
+
+      // ToDo!!
       // 3. Fill buffer
+
+      // Verbindung herstellen
+      // Create UDP Connection and simultaniously sending(+wait) and listening nad let timers run
+      //
+
+
+      // Erzeuge Empfänger Thread
+
+//      startListenerThread();
+
+
+      // Erzeuge Sender Thread => Send all packages...
+
+
 
       //----> sendAllPackages()
 
   }
 
+  private class ListenerThread extends Thread{
 
-  public void SendAllPackages(){
+    public ListenerThread() {
+
+
+    }
+
+    public void run() {
+
+      // 1. Socket anlegen
+      // 2. Verbindung abwarten
+      //    weiterer Thread:
+      //    2.1 ACK für package x ein lesen
+      //    2.2 in der Liste Aller Packages x als validACK setzen....
+
+      while(true) {
+
+        try{
+
+        }catch (Exception e) {
+          System.err.println("Schade beim Lauschen auf antworten ist was schiefgegangen...");
+        }
+
+      }
+
+    }
+
+  }
+
+
+  public void SendAllPackages() throws SocketException {
+
+    //THREADS HERE
+
+    // Stack unsent packages
+    Map<Integer, FCpacket> unsent = packagesSync;
+
+    // Stack sent packages
+    Map<Integer, FCpacket> sent = HashMap.newHashMap(packagesSync.size());
+
+    int sequenceCounter = 0;
+
+    FCpacket sentPack;
+
+
+
+    /// send to server + wait for ack
+    while (!packagesSync.isEmpty()) {
+        // Sending
+
+        // package to sent
+        sentPack = packagesSync.get(sequenceCounter);
+
+        // DEBUGGING FÜR ARME
+        System.out.printf("PackageNr: %d, PackageLen: %d\n", sequenceCounter, sentPack.getLen());
+        // Socket
+
+      //      // Socket einmal
+//      DatagramSocket socket;
+//      try{
+//
+//        socket = new DatagramSocket(SERVER_PORT);
+//        }catch (SocketException se){
+//        System.out.printf("Schade - beim erzeugen des Sockets ist was schiefgegangen\n\t%s",se.getMessage());
+//      }
+
+
+      try{
+        // Port and Host
+        DatagramSocket socket = new DatagramSocket(SERVER_PORT);
+        DatagramPacket toSend = new DatagramPacket(sentPack.getData(), sentPack.getData().length , InetAddress.getByName(servername), SERVER_PORT);
+        socket.send(toSend);
+        //sentPack.getTimer().run();
+      }catch (SocketException e) {
+        System.out.printf("Schade - beim senden ist was schiefgegangen...\n %s\n", e.getMessage());
+      } catch (IOException e) {
+          throw new RuntimeException(e);
+      }
+
+
+        // socket.send(pack)..
+
+
+        // update stacks and counter
+        sent.put(sequenceCounter, sentPack);
+        packagesSync.remove(sequenceCounter);
+        sequenceCounter++;
+    }
+
+    }
+
 
     // 1. Send Control Package (explicitly or implicitly)
     // 2. Wait for Ack
@@ -88,7 +195,7 @@ public class FileCopyClient extends Thread {
 
     // Schreibe Statistik ....
 
-  }
+
 
 
   private void readFile(String sourcePath) {
