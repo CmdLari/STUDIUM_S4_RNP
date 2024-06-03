@@ -215,4 +215,12 @@ public class FCpacket implements Comparable<FCpacket> {
     }
   }
 
+  @Override
+  public String toString() {
+
+    return String.format("Package : Seq=%d dataLen=%d ", seqNumber, dataLen);
+
+  }
+
+
 }

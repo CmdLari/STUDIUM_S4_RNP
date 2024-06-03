@@ -53,6 +53,8 @@ public class FileCopyClient extends Thread {
 
   public void runFileCopyClient() {
 
+    readFile(sourcePath);
+
       // ToDo!!
       // 1. Datei einlesen
         // 1.1 check file exists
@@ -104,26 +106,34 @@ public class FileCopyClient extends Thread {
 
       int offset = 0;
       long cursor = 0;
-      int actualLength =0;
+      int actualLength;
 
       File file = new File(sourcePath);
       long fileLength = file.length();
 
-      makeControlPacket();
+      packages.put(0, makeControlPacket());
+
+//      Debugging für Arme
+//      System.out.println(sourcePath);
+//      System.out.printf("File length: %d\n", fileLength);
+
 
       while (cursor < fileLength) {
+
         actualLength = inputStream.read(currentBuffer, offset, UDP_PACKET_SIZE - 8);
-        offset += actualLength;
-        cursor += offset;
+
+//      Debugging für Arme
+//      System.out.printf("Cursor: %d - Package: %d - Offset: %d - Actual Length: %d\n", cursor, pgkCounter,offset,actualLength);
+
+        cursor += actualLength;
         FCpacket currentPkg = new FCpacket(pgkCounter, currentBuffer, actualLength);
-        pgkCounter++;
         packages.put(pgkCounter, currentPkg);
+        pgkCounter++;
+
       }
 
       packagesSync = Collections.synchronizedMap(packages);
 
-    } catch (FileNotFoundException e) {
-      throw new RuntimeException(e);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -205,6 +215,12 @@ public class FileCopyClient extends Thread {
     FileCopyClient myClient = new FileCopyClient(argv[0], argv[1], argv[2],
         argv[3], argv[4]);
     myClient.runFileCopyClient();
+
+
+//    System.out.println(myClient.packagesSync);
+
+
+
   }
 
 }
