@@ -7,10 +7,7 @@ package Praktikum3;
  */
 
 import java.io.*;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.util.*;
 
 public class FileCopyClient extends Thread {
@@ -18,7 +15,7 @@ public class FileCopyClient extends Thread {
   // -------- Constants
   public final static boolean TEST_OUTPUT_MODE = false;
 
-  public final int SERVER_PORT = 8080;
+  public final int SERVER_PORT = 23000;
 
   public final int UDP_PACKET_SIZE = 1008;
 
@@ -131,9 +128,18 @@ public class FileCopyClient extends Thread {
 
     FCpacket sentPack;
 
+    System.out.println(unsent.get(0).toString());
+
+    //      // Socket einmal erstellen, ohne Port und IP -> Das machen die Pakete
+      DatagramSocket socket=null;
+      try{
+        socket = new DatagramSocket();
+      }catch (SocketException se) {
+        System.out.printf("Schade - beim erzeugen des Sockets ist was schiefgegangen\n\t%s", se.getMessage());
+      }
 
 
-    /// send to server + wait for ack
+      /// send to server + wait for ack
     while (!packagesSync.isEmpty()) {
         // Sending
 
@@ -144,30 +150,27 @@ public class FileCopyClient extends Thread {
         System.out.printf("PackageNr: %d, PackageLen: %d\n", sequenceCounter, sentPack.getLen());
         // Socket
 
-      //      // Socket einmal
-//      DatagramSocket socket;
-//      try{
-//
-//        socket = new DatagramSocket(SERVER_PORT);
-//        }catch (SocketException se){
-//        System.out.printf("Schade - beim erzeugen des Sockets ist was schiefgegangen\n\t%s",se.getMessage());
-//      }
 
 
       try{
         // Port and Host
-        DatagramSocket socket = new DatagramSocket(SERVER_PORT);
-        DatagramPacket toSend = new DatagramPacket(sentPack.getData(), sentPack.getData().length , InetAddress.getByName(servername), SERVER_PORT);
+
+        DatagramPacket toSend = new DatagramPacket(sentPack.getSeqNumBytesAndData(),
+                sentPack.getSeqNumBytesAndData().length ,
+                InetAddress.getByName(servername),
+                SERVER_PORT);
+
         socket.send(toSend);
-        //sentPack.getTimer().run();
+
+        // Timer des Pakets Starten ....
+
+
       }catch (SocketException e) {
         System.out.printf("Schade - beim senden ist was schiefgegangen...\n %s\n", e.getMessage());
       } catch (IOException e) {
           throw new RuntimeException(e);
       }
 
-
-        // socket.send(pack)..
 
 
         // update stacks and counter
@@ -209,7 +212,8 @@ public class FileCopyClient extends Thread {
 
       byte[] currentBuffer = new byte[UDP_PACKET_SIZE - 8];
 
-      int pgkCounter = 1;
+      //int pgkCounter = 1;
+      long pgkCounter = 1;
 
       int offset = 0;
       long cursor = 0;
@@ -234,7 +238,7 @@ public class FileCopyClient extends Thread {
 
         cursor += actualLength;
         FCpacket currentPkg = new FCpacket(pgkCounter, currentBuffer, actualLength);
-        packages.put(pgkCounter, currentPkg);
+        packages.put((int)pgkCounter, currentPkg);
         pgkCounter++;
 
       }
@@ -319,8 +323,14 @@ public class FileCopyClient extends Thread {
    * @throws Exception
    */
   public static void main(String argv[]) throws Exception {
-    FileCopyClient myClient = new FileCopyClient(argv[0], argv[1], argv[2],
-        argv[3], argv[4]);
+    FileCopyClient myClient = new FileCopyClient(
+            argv[0], // ServerArg
+            argv[1], // sourcePath
+            argv[2], // destPath
+            argv[3], // windowSize
+            argv[4]  // ErrorRate
+    );
+
     myClient.runFileCopyClient();
 
 
