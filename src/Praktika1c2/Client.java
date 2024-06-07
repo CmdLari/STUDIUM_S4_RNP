@@ -16,7 +16,13 @@ public class Client {
     /**
      * Makes a new client and establishes a connection to the server
      *
-     * @param args - 1. hostname/IP-Address of the servers, 2. PortNr of the server
+     * examples :
+     * REVERSE AAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCCCC
+     * REVERSE AAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCÄÄÄÄÖÖÖÖÜÜÜÜßßßßäääöööüüü
+     *
+     * @param args - 1. hostname/IP-Address of the servers,
+     *             2. PortNr of the server
+     *             3. PackageSize 0 < ps < 255, if not given default of 255 is used
      */
     public static void main(String[] args) {
         String hostname = null;
@@ -69,19 +75,11 @@ public class Client {
                     continue;
                 }
 
-                /*  Send message to server */
-//                pwriter.printf("%s\n", msg);
-//                pwriter.flush();
-
-
-                //byte[] msgCharAry = msg.getBytes();
                 char[] msgCharAry = msg.toCharArray();
                 char[] currentChunk;
 
                 // Message is shorter than packageSize => send as hole
                 if (msgCharAry.length < packageSize) {
-//                    outputToServer.write(msgCharAry);
-//                    outputToServer.write('\n');
                     writer.write(msgCharAry);
                     writer.flush();
                 } else {
@@ -90,8 +88,6 @@ public class Client {
                     int sendCounter = 0;
                     // for the hole message, divide it in to chunks
                     while (sendCounter < msgCharAry.length) {
-                        //byte[] currentChunk;
-
                         if ((msgCharAry.length - sendCounter) < packageSize) {
                             /* Last Package, last chunk of Message, maybe shorter then packageSize*/
                             currentChunk = Arrays.copyOfRange(msgCharAry, sendCounter, msgCharAry.length);
@@ -100,16 +96,16 @@ public class Client {
                         }
 
                         // Debugging für Arme ...
-
+                        /*
                         StringBuilder sb = new StringBuilder();
                         //for (byte b : currentChunk) {
                         for (char b : currentChunk) {
                             sb.append((char) b);
                         }
                         System.err.printf("CurrentChunk ist: %s\n", sb);
+                        */
 
                         // Send current chunk of message to server
-                        //outputToServer.write(currentChunk);
                         writer.write(currentChunk);
                         writer.flush();
 
@@ -124,12 +120,11 @@ public class Client {
                         sendCounter += packageSize;
                     }
 
-                    //outputToServer.write('\n'); // Final Part: send \n, therefore the server knows, the message is completed
+                    // Final Part: send \n, therefore the server knows, the message is completed
                     writer.write('\n');
                     writer.flush();
 
-                    // REVERSE AAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCCCC
-                    // REVERSE AAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCÄÄÄÄÖÖÖÖÜÜÜÜßßßßäääöööüüü
+
                 }
 
 
@@ -152,11 +147,9 @@ public class Client {
                 /* Print server response to console//user */
                 System.out.println(response);
                 if (response.equals("OK BYE\n")) {
-                    System.out.println("GoodBye and see u later");
                     break;
                 }
-                if (response.equals("OK SHUTDOWN")) {
-                    System.out.println("GoodBye and see u tomorrow");
+                if (response.equals("OK SHUTDOWN")||response.equals("OK SHUTDOWN\n")) {
                     break;
                 }
             }
