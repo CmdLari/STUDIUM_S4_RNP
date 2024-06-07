@@ -11,7 +11,7 @@ public class Client {
 
     private static final int MAX_LENGTH = 255;
     private static int packageSize = MAX_LENGTH;
-    private static final int DELAY = 100;
+    private static final int DELAY = 500; // Verzögerung zwischen dem absenden der einzelnen BytePackte -> damit man merk das wirklich einzelne Pakete durch die Luft fliegen.
 
     /**
      * Makes a new client and establishes a connection to the server
@@ -31,17 +31,15 @@ public class Client {
             System.out.println("ENTER HOSTNAME AND PORT!");
             System.exit(-1);
         } else if (args.length < 3) {
-            hostname = args[0];
-            port = Integer.parseInt(args[1]);
-            System.out.printf("PACKAGESIZE not set - using default: %d", MAX_LENGTH);
+            System.out.printf("PACKAGESIZE not set - using default: %d\n", MAX_LENGTH);
         } else if (args.length == 3) {
-
             int size = Integer.parseInt(args[2]);
             if (size > 0 && size < 255) {
                 packageSize = size;
             }
-
         }
+        hostname = args[0];
+        port = Integer.parseInt(args[1]);
 
         printInitialPrompt();
 
@@ -52,28 +50,16 @@ public class Client {
 
              //Streams made to be used for reading and writing
              Writer writer = new OutputStreamWriter(outputToServer, StandardCharsets.UTF_8);
-             PrintWriter pwriter = new PrintWriter(writer);
 
              Reader reader = new InputStreamReader(inputFromServer, StandardCharsets.UTF_8);
              BufferedReader breader = new BufferedReader(reader)
 
         ) {
-
-            // Apply packageSize to Socket
-            // Source: https://docs.oracle.com/javase/8/docs/api/java/net/Socket.html#setSendBufferSize-int-
-            //s.setSendBufferSize(packageSize);
-
-            // Check actual buffer size
-//            int actualBufferSize = s.getSendBufferSize();
-//            if (actualBufferSize != packageSize) {
-//                System.out.printf("The Current SendBufferSize is: %3d \n", actualBufferSize);
-//            }
-
+            // Mainloop -> printPrompt - readMsg - sendMsg - getResponse - showResponse
             while (true) {
                 // VARIABLES
                 String response = null;
                 actual_Length = 0;
-
 
                 printPrompt();
 
@@ -83,56 +69,67 @@ public class Client {
                     continue;
                 }
 
-
-                //int expectedPackageCount = msg.getBytes().length / actualBufferSize;
-
-
-                //System.out.printf("Expected number of packages: %3d - %d\n", expectedPackageCount, expectedPackageCount + 1);
-
                 /*  Send message to server */
 //                pwriter.printf("%s\n", msg);
 //                pwriter.flush();
 
 
-                byte[] msgCharAry = msg.getBytes();
+                //byte[] msgCharAry = msg.getBytes();
+                char[] msgCharAry = msg.toCharArray();
+                char[] currentChunk;
 
+                // Message is shorter than packageSize => send as hole
                 if (msgCharAry.length < packageSize) {
-                    outputToServer.write(msgCharAry);
-                    outputToServer.write('\n');
+//                    outputToServer.write(msgCharAry);
+//                    outputToServer.write('\n');
+                    writer.write(msgCharAry);
+                    writer.flush();
                 } else {
-
-                    /* Send packages of defined size */
+                    /* Message is longer then packageSize  */
+                    /*    Send packages of defined size    */
                     int sendCounter = 0;
+                    // for the hole message, divide it in to chunks
                     while (sendCounter < msgCharAry.length) {
-                        byte[] currentChunk;
+                        //byte[] currentChunk;
+
                         if ((msgCharAry.length - sendCounter) < packageSize) {
+                            /* Last Package, last chunk of Message, maybe shorter then packageSize*/
                             currentChunk = Arrays.copyOfRange(msgCharAry, sendCounter, msgCharAry.length);
                         } else {
                             currentChunk = Arrays.copyOfRange(msgCharAry, sendCounter, sendCounter + packageSize);
                         }
 
+                        // Debugging für Arme ...
+
                         StringBuilder sb = new StringBuilder();
-                        for (byte b : currentChunk) {
+                        //for (byte b : currentChunk) {
+                        for (char b : currentChunk) {
                             sb.append((char) b);
                         }
+                        System.err.printf("CurrentChunk ist: %s\n", sb);
 
-                        System.err.printf("CurrentChunck ist: %s\n", sb);
+                        // Send current chunk of message to server
+                        //outputToServer.write(currentChunk);
+                        writer.write(currentChunk);
+                        writer.flush();
 
-                        outputToServer.write(currentChunk);
-
+                        // Wait for some time, as the user can notice there are different packages.
                         if (DELAY > 0) {
                             try {
-                                Thread.currentThread().sleep(1000);
+                                Thread.currentThread().sleep(DELAY);
                             } catch (Exception e) {
-
+                                // Bad-Style, as it should be...
                             }
                         }
                         sendCounter += packageSize;
                     }
 
-                    outputToServer.write('\n');
+                    //outputToServer.write('\n'); // Final Part: send \n, therefore the server knows, the message is completed
+                    writer.write('\n');
+                    writer.flush();
 
                     // REVERSE AAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCCCC
+                    // REVERSE AAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCÄÄÄÄÖÖÖÖÜÜÜÜßßßßäääöööüüü
                 }
 
 
@@ -152,19 +149,24 @@ public class Client {
                     response = new String(cbuf);
                 }
 
-                /* Print serverresponse to Console//User*/
+                /* Print server response to console//user */
                 System.out.println(response);
-                if (response.equals("OK BYE")) {
+                if (response.equals("OK BYE\n")) {
+                    System.out.println("GoodBye and see u later");
                     break;
                 }
                 if (response.equals("OK SHUTDOWN")) {
+                    System.out.println("GoodBye and see u tomorrow");
                     break;
                 }
             }
 
         } catch (IOException iox) {
-            System.err.println("Praktika1c2.Server is not accepting more Clients at this time.");
+            System.err.println("Praktika1c2.Server is not accepting " +
+                    " Clients at this time.");
         }
+
+        System.exit(0);
     }
 
 
