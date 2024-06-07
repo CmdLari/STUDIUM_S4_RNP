@@ -4,9 +4,11 @@ echo "     ================ All test for RN TCP STRING SERVER ==================
 echo "================ Change directory ================"
 cd /mnt/c/Users/fabia/Documents/4_Semester/40_Rechnernetze/30_Praktika_Uebung/RNP/src/Praktika1c2/Notes
 
-echo "Run Positiv Tests"
+echo "================Run Positiv Tests=================="
 netcat localhost 12345 < ./test_Input_success.txt # Erfolgreiche Testeingaben
 
+echo "================Run Positiv Tests with whitespaces =================="
+netcat localhost 12345 < ./test_Input_with_Spaces_Success.txt # Erfolgreiche Testeingaben mit Leerzeichen
 
 
 echo "================ Run Negativ Tests ================"

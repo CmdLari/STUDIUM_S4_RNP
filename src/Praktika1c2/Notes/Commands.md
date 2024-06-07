@@ -33,3 +33,8 @@ netcat localhost 12345 < ./test_Input_too_long.txt
 
 # Böse eingabe die Trozdem funktioniert:
 `netcat localhost 12345 < ./BadTest.txt`
+
+# Perl Test-Script von Kossakowski
+```shell
+perl simple-test_v02.pl localhost 12345
+```
