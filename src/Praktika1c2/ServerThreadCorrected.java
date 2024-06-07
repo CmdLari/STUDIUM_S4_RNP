@@ -16,7 +16,9 @@ Anforderungen an den ServerThread:
     - ist die message länger wird der rest bis zu nächsten \n verworfen? fehlermeldung?
     -
 
-- der eingabestrom soll utf codiert sein und verarbeitet werden
+- der Eingabestrom soll utf-8 codiert sein und verarbeitet werden
+
+
 
  */
 
@@ -26,7 +28,6 @@ import Praktika1c2.syslog.SyslogException;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Timer;
@@ -34,13 +35,13 @@ import java.util.TimerTask;
 
 public class ServerThreadCorrected extends Thread {
 
-    public final int INPUT_CAPACITY = 1048;// Maximale Eingabe Kapazität 1048 Byte um den Server vor überfrachtung zu Schützen
-    public final int MAX_MSG_LENGHT = 256; // Maximale länge einer nachricht beträgt 256 Byte
+    public final int INPUT_CAPACITY = 1048;// maximum Input capacity 1048 Byte for InputBuffer, in order to protect the server against overflow
+    public final int MAX_MSG_LENGTH = 256; // maximum length for a single Message
     public static final long SHUTDOWN_DELAY = 30000L; // 30000 ms = 30 sec
     private static final String PASSWORD = "666"; // Streng geheimes Passwort um den Server abzuschalten => TODO: move to server
     private final short id;
     protected Socket socket;
-    ByteBuffer msgBuffer;
+    ByteBuffer msgBuffer; // Buffer for a single Message
 
     private boolean running = true; /* Variables needed to handle Shutdown, set by BYE-Command */
     private boolean runtime = true; /* Variables needed to handle Shutdown, set by Shutdown-timeOut */
@@ -58,7 +59,7 @@ public class ServerThreadCorrected extends Thread {
     @Override
     public void run() {
 
-        // Verbindbung aufnehemen
+        // create Connection to client
         try (InputStream inputStream = socket.getInputStream();
              BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8), INPUT_CAPACITY);
              OutputStream outputToClient = socket.getOutputStream();
@@ -66,28 +67,28 @@ public class ServerThreadCorrected extends Thread {
              Writer writer = new OutputStreamWriter(outputToClient, StandardCharsets.UTF_8);
              PrintWriter out = new PrintWriter(writer)) {
 
-            // Outputwrite zum Clienten verfügbar machen...
+            //make OutputWrite to client  available to all methods
             this.out = out;
 
-            int currentCharCode;
+            int currentCharCode; // the byte-representation of character is interpreted as integer, therefore int = char (in UNICODE)
             boolean msgContains_r = false ;
 
-            // Wenn/solange verbindung besteht ...
+            // as long as these server thread is connected to some client.
             while (!socket.isClosed() && running && runtime) {
 
-                // Wenn es etwas zu lesen gibt...
-                // Erstelle eine (neue) Nachricht/Msg
-                while (bufferedReader.ready() && msgBuffer.position() < MAX_MSG_LENGHT) {
+                // As long as there are chars to reade in the buffer,
+                // read chars/byte to msgBuffer
+                while (bufferedReader.ready() && msgBuffer.position() < MAX_MSG_LENGTH) {
 
-                    //Lese das Aktuelle Zeichen ...
+                    //Read current byte/Charakter
                     currentCharCode = bufferedReader.read();
 
-                    // Naricht zuende, verlasse die schleife...
+                    // Message has ended, leaf while-loop.
                     if (currentCharCode != Character.codePointOf("\n")) {
                         break;
                     }
 
-                    // Wird ein \r gelesen?
+                    // is \r read ?
                     if (currentCharCode != Character.codePointOf("\r")) {
                         msgContains_r = true;
                     }
@@ -95,9 +96,9 @@ public class ServerThreadCorrected extends Thread {
                     msgBuffer.put((byte) currentCharCode);
                 }
 
-                // Verarbeite die Nachricht
+                // Proceed message
                 if (msgContains_r) {
-                    // Fehlerfall, msg enthält ein \r
+                    // Error case - msg contains \r
                     sendErrorMsg(msgBuffer);
                 } else {
 
@@ -105,13 +106,12 @@ public class ServerThreadCorrected extends Thread {
                     try {
                         running = processMsg(msg);
                     } catch (SyslogException se) {
-                        System.out.printf("Schade es hat ein Problem mit Syslog gegeben...\n%s\n", se.getMessage());
+                        System.out.printf("Pity - syslog got some problems while proceeding the message...\n%s\n", se.getMessage());
                     }
                 }
 
-                // Lösche den Alten MsgBuffer und erzeuge einen neuen.
-                // buffer.clear() entfernt die alten daten NICHT!
-                msgBuffer = ByteBuffer.allocate(MAX_MSG_LENGHT);
+                // Delete the old messageBuffer and create a new one. Buffer.Clear doesn't remove content.
+                msgBuffer = ByteBuffer.allocate(MAX_MSG_LENGTH);
                 msgContains_r = false;
 
                 // is the Shutdowntimer already set?
@@ -123,15 +123,15 @@ public class ServerThreadCorrected extends Thread {
             }
 
         } catch (IOException ioe) {
-            System.out.println("Schade - beim erstellen der Verbindung oder beim lesen der Msg ist etwas schiefgegangen...");
+            System.out.println("Pity - error occurred during connecting or while reading the message ...");
             System.out.println(ioe.getMessage());
         }
 
-        // Melde diesen Thread beim server ab...
+        // unsubscribe this thread from boss-server
         try {
             Syslog.log(1, 7, "Praktika1c2.Client %d timed out. " + id);
         } catch (SyslogException se) {
-            System.out.printf("Schade - Beim Loggen des Beenden ist was scheifgelaufen \n %s\n",se.getMessage());
+            System.out.printf("Pity - Error occurred while logging the un-subscription from server \n %s\n",se.getMessage());
         }finally {
             Server.clientClosed();
         }
@@ -140,7 +140,7 @@ public class ServerThreadCorrected extends Thread {
 
 
     /**
-     * Sende Fehlermeldung an Clienten zurrück
+     * Send an error Messesage to client.
      *
      * @param msgBuffer - inhalt der fehlerhaften nachricht
      */
@@ -150,20 +150,21 @@ public class ServerThreadCorrected extends Thread {
     }
 
     /**
-     * Verarbeitet die Nachricht sofern sie kein \r enthält....
+     * Processes the msg, provided no \r is included.
      *
-     * @param msg - die Nachricht ....
+     * Every Successful command is acknowledged with OK
+     * If interpretation of the message fails, it is acknowledged with ERROR
+     *
+     * @param msg - Message containing at Least one command word and an optionale argument
      * @return false, falls die anwendung beendet werden soll, andernfalls true.
-     * @throws SyslogException
+     * @throws SyslogException - syslog got some problems
      */
     private boolean processMsg(String msg) throws SyslogException {
-
-        String response = "ERROR UNKNOWN COMMAND";
 
         // Handle BYE Command
         if (msg.trim().equalsIgnoreCase("BYE")) {
             Syslog.log(1, 7, "Praktika1c2.Client sent BYE");
-//            System.out.println("Praktika1c2.Client sent BYE");
+            // System.out.println("Praktika1c2.Client sent BYE");
             out.printf("%s", "OK BYE");
             out.flush();
             return false;
@@ -175,7 +176,6 @@ public class ServerThreadCorrected extends Thread {
         // Handle SHUTDOWN Command
         if (tokens[0].equals("SHUTDOWN")) {
             //Check Password
-
             if (tokens.length == 2) {
                 if (tokens[1].equals(PASSWORD)) {
                     // Password Accepted
@@ -184,21 +184,14 @@ public class ServerThreadCorrected extends Thread {
                     out.printf("%s", "OK SHUTDOWN");
                     out.flush();
                     Server.handleShutdownCommand();
-
                     return false;
-                } else if (tokens[1] == null) {
-                    out.printf("%s", "ERROR No password entered");
-                    out.flush();
-                    Syslog.log(1, 7, "ERROR No password entered");
-                    return true;
-
-                } else {
+                } else { // Wrong Password
                     out.printf("%s", "ERROR Password incorrect");
                     out.flush();
                     Syslog.log(1, 7, "ERROR Password incorrect");
                     return true;
                 }
-            } else {
+            } else { // No Password given, or to many arguments
                 out.printf("%s", "SHUTDOWN command incorrect [needs cmd + password]");
                 out.flush();
                 Syslog.log(1, 7, "SHUTDOWN command incorrect [needs cmd + password]");
@@ -207,7 +200,7 @@ public class ServerThreadCorrected extends Thread {
         }
 
         // Handle all String-Based Commands
-        response = switch (tokens[0]) {
+        String response = switch (tokens[0]) {
             case "LOWERCASE" -> "OK >> " + tokens[1].toLowerCase();
             case "UPPERCASE" -> "OK >> " + tokens[1].toUpperCase();
             case "REVERSE" -> "OK >> " + new StringBuilder(tokens[1]).reverse();
