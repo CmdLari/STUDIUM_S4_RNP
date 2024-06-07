@@ -23,8 +23,8 @@ Anforderungen an den ServerThread:
  */
 
 
-import Praktika1c2.syslog.Syslog;
-import Praktika1c2.syslog.SyslogException;
+//import Praktika1c2.syslog.Syslog;
+//import Praktika1c2.syslog.SyslogException;
 
 import java.io.*;
 import java.net.Socket;
@@ -111,11 +111,12 @@ public class ServerThreadCorrected extends Thread {
                 } else {
 
                     String msg = StandardCharsets.UTF_8.decode(msgBuffer).toString();
-                    try {
-                        running = processMsg(msg);
-                    } catch (SyslogException se) {
-                        System.out.printf("Pity - syslog got some problems while proceeding the message...\n%s\n", se.getMessage());
-                    }
+//                    try {
+//                        running = processMsg(msg);
+//                    } catch (SyslogException se) {
+//                        System.out.printf("Pity - syslog got some problems while proceeding the message...\n%s\n", se.getMessage());
+//                    }
+                    running = processMsg(msg);
                 }
 
 
@@ -137,14 +138,15 @@ public class ServerThreadCorrected extends Thread {
         }
 
         // unsubscribe this thread from boss-server
-        try {
-            Syslog.log(1, 7, "Praktika1c2.Client %d timed out. " + id);
-        } catch (SyslogException se) {
-            System.out.printf("Pity - Error occurred while logging the un-subscription from server \n %s\n", se.getMessage());
-        } finally {
-            Server.clientClosed();
-        }
-
+//        try {
+//            Syslog.log(1, 7, "Praktika1c2.Client %d timed out. " + id);
+//        } catch (SyslogException se) {
+//            System.out.printf("Pity - Error occurred while logging the un-subscription from server \n %s\n", se.getMessage());
+//        } finally {
+//            Server.clientClosed();
+//        }
+        System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"Praktika1c2.Client %d timed out. " + id);
+        Server.clientClosed();
     }
 
 
@@ -166,13 +168,14 @@ public class ServerThreadCorrected extends Thread {
      *
      * @param msg - Message containing at Least one command word and an optionale argument
      * @return false, falls die anwendung beendet werden soll, andernfalls true.
-     * @throws SyslogException - syslog got some problems
+     *
      */
-    private boolean processMsg(String msg) throws SyslogException {
+    private boolean processMsg(String msg){// throws SyslogException {
 
         // Handle BYE Command
         if (msg.trim().equalsIgnoreCase("BYE")) {
-            Syslog.log(1, 7, "Praktika1c2.Client sent BYE");
+            //Syslog.log(1, 7, "Praktika1c2.Client sent BYE");
+            System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"Praktika1c2.Client sent BYE");
             // System.out.println("Praktika1c2.Client sent BYE");
             out.printf("%s", "OK BYE");
             out.flush();
@@ -188,8 +191,8 @@ public class ServerThreadCorrected extends Thread {
             if (tokens.length == 2) {
                 if (tokens[1].equals(PASSWORD)) {
                     // Password Accepted
-                    // System.out.printf("client %2d has send SHUTDOWN-command\n", id);
-                    Syslog.log(1, 7, "client %2d has send SHUTDOWN-command\n" + id);
+                    //Syslog.log(1, 7, "client %2d has send SHUTDOWN-command\n" + id);
+                    System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"client "+id+" has send SHUTDOWN-command");
                     out.printf("%s", "OK SHUTDOWN");
                     out.flush();
                     Server.handleShutdownCommand();
@@ -197,13 +200,16 @@ public class ServerThreadCorrected extends Thread {
                 } else { // Wrong Password
                     out.printf("%s", "ERROR Password incorrect");
                     out.flush();
-                    Syslog.log(1, 7, "ERROR Password incorrect");
+                    //Syslog.log(1, 7, "ERROR Password incorrect");
+                    System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"ERROR Password incorrect");
+
                     return true;
                 }
             } else { // No Password given, or to many arguments
                 out.printf("%s", "SHUTDOWN command incorrect [needs cmd + password]");
                 out.flush();
-                Syslog.log(1, 7, "SHUTDOWN command incorrect [needs cmd + password]");
+                //Syslog.log(1, 7, "SHUTDOWN command incorrect [needs cmd + password]");
+                System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, "SHUTDOWN command incorrect [needs cmd + password]");
                 return true;
             }
         }
@@ -223,17 +229,18 @@ public class ServerThreadCorrected extends Thread {
 
         //Print clients Request
         //System.out.printf("Request from Praktika1c2.Client %d : ",id);
-        Syslog.log(1, 7, "Request from Praktika1c2.Client %d : " + id);
+        //Syslog.log(1, 7, "Request from Praktika1c2.Client %d : " + id);
+        System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"Request from Praktika1c2.Client: " + id);
         for (String s : tokens) {
-            Syslog.log(1, 7, s);
+            //Syslog.log(1, 7, s);
+            System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, s);
             // System.out.printf("%s ",s);
         }
         System.out.println();
 
         //Print Praktika1c2.Server Answer
-        System.out.printf("Response to Praktika1c2.Client %d: %s\n", id, response);
-        Syslog.log(1, 7, "Response to Praktika1c2.Client" + id + " " + response + "\n");
-
+        //Syslog.log(1, 7, "Response to Praktika1c2.Client" + id + " " + response + "\n");
+        System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, "Response to Praktika1c2.Client" + id + " " + response);
         return true;
     }
 
