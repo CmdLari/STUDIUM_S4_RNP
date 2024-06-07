@@ -28,7 +28,6 @@ Anforderungen an den ServerThread:
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Timer;
@@ -76,6 +75,7 @@ public class ServerThreadCorrected extends Thread {
 
             int currentCharCode; // the byte-representation of character is interpreted as integer, therefore int = char (in UNICODE)
             boolean msgContains_r = false;
+            boolean msgTooLong = false;
 
             // as long as these server thread is connected to some client.
             while (!socket.isClosed() && running && runtime) {
@@ -97,6 +97,11 @@ public class ServerThreadCorrected extends Thread {
 
                     //Read current byte/Charakter
                     currentCharCode = bufferedReader.read();
+
+                    if(msgBuffer.position()==MAX_MSG_LENGTH-1 && currentCharCode!=(int)'\n'){
+                        msgTooLong=true;
+                        break;
+                    }
 
                     // Message has ended, leaf while-loop.
                     if ((char)currentCharCode == '\n'){//Character.codePointOf("\n")) {
@@ -122,40 +127,25 @@ public class ServerThreadCorrected extends Thread {
                     msgBuffer.put((char)currentCharCode);
                 }
 
-
-                // MSG Buffer ist gefüllt
-//                int length = msgBuffer.length();
-//                int pos = msgBuffer.position();
-//                msgBuffer.flip();
-//                String test = msgBuffer.toString();
-//                System.out.printf("Nachricht ist: \"%s\"\n",test);
-//                System.out.printf("\tPosition ist: %d\n",pos);
-//                System.out.printf("\tLänge ist: %d\n",length);
-
+                // Convert msgBuffer to String
                 msgBuffer.flip();
                 String msg = msgBuffer.toString();
 
-
                 // Proceed message
-                if (msgContains_r) {
-                    // Error case - msg contains \r
+                if (msgContains_r) { // Error case - msg contains \r
                     sendErrorMsg(msg);
-                } else {
-
-                     //msg = StandardCharsets.UTF_8.decode(msgBuffer).toString();
-//                    try {
-//                        running = processMsg(msg);
-//                    } catch (SyslogException se) {
-//                        System.out.printf("Pity - syslog got some problems while proceeding the message...\n%s\n", se.getMessage());
-//                    }
+                } else if(msgTooLong){ // Errorcase - msg is to long
+                    sendErrorMsgTooLong();
+                }else {// Normal Case
                     running = processMsg(msg);
                 }
 
-
+                // Anyway - reset everything and keep going
                 // Delete the old messageBuffer and create a new one. Buffer.Clear doesn't remove content.
                 //msgBuffer = ByteBuffer.allocate(MAX_MSG_LENGTH);
                 msgBuffer = CharBuffer.allocate(MAX_MSG_LENGTH);
                 msgContains_r = false;
+                msgTooLong = false;
 
                 // is the Shutdowntimer already set?
                 // if so, reset timer, after receiving a message
@@ -180,6 +170,14 @@ public class ServerThreadCorrected extends Thread {
 //        }
         System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"Praktika1c2.Client " + id + " timed out. ");
         Server.clientClosed();
+    }
+
+    /**
+     * Send client error message, that current message is too long, and exceeds the 255 byte limitiation.
+     */
+    private void sendErrorMsgTooLong() {
+        out.printf("ERROR STRING TOO LONG\n");
+        out.flush();
     }
 
 
@@ -210,42 +208,69 @@ public class ServerThreadCorrected extends Thread {
             //Syslog.log(1, 7, "Praktika1c2.Client sent BYE");
             System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"Praktika1c2.Client sent BYE");
             // System.out.println("Praktika1c2.Client sent BYE");
-            out.printf("%s", "OK BYE");
+            out.printf("%s", "OK BYE\n");
             out.flush();
             return false;
         }
 
 
-        String[] tokens = msg.trim().split(" ");
+
+        //String[] tokens = msg.trim().split(" ");
+
+        String[] tokens = new String[2];
+
+        int spaceIndex = msg.indexOf(" ");
+        if(spaceIndex<=0){
+            out.printf("%s", "ERROR UNKNOWN COMMAND\n");
+            out.flush();
+            //Syslog.log(1, 7, "Praktika1c2.Client sent BYE");
+            System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"ERROR UNKNOWN COMMAND");
+            return true;
+        }
+
+        tokens[0] = msg.substring(0,spaceIndex);
+        tokens[1] = msg.substring(spaceIndex+1);
 
         // Handle SHUTDOWN Command
         if (tokens[0].equals("SHUTDOWN")) {
-            //Check Password
-            if (tokens.length == 2) {
+//            //Check Password
+//            if (tokens.length == 2) {
                 if (tokens[1].equals(PASSWORD)) {
                     // Password Accepted
                     //Syslog.log(1, 7, "client %2d has send SHUTDOWN-command\n" + id);
                     System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"client "+id+" has send SHUTDOWN-command");
-                    out.printf("%s", "OK SHUTDOWN");
+                    out.printf("%s", "OK SHUTDOWN\n");
                     out.flush();
                     Server.handleShutdownCommand();
                     return false;
                 } else { // Wrong Password
-                    out.printf("%s", "ERROR Password incorrect");
+                    out.printf("%s", "ERROR Password incorrect\n");
                     out.flush();
                     //Syslog.log(1, 7, "ERROR Password incorrect");
                     System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"ERROR Password incorrect");
 
                     return true;
-                }
-            } else { // No Password given, or to many arguments
-                out.printf("%s", " ERROR SHUTDOWN command incorrect [needs cmd + password]");
-                out.flush();
-                //Syslog.log(1, 7, "SHUTDOWN command incorrect [needs cmd + password]");
-                System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, "ERROR SHUTDOWN command incorrect [needs cmd + password]");
-                return true;
+//                }
+//            } else { // No Password given, or to many arguments
+//                out.printf("%s", " ERROR SHUTDOWN command incorrect [needs cmd + password]\n");
+//                out.flush();
+//                //Syslog.log(1, 7, "SHUTDOWN command incorrect [needs cmd + password]");
+//                System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, "ERROR SHUTDOWN command incorrect [needs cmd + password]");
+//                return true;
             }
         }
+
+//        String argument = Arrays.stream(tokens).skip(1).collect(Collectors.joining(" ")); ;
+//
+//        // Handle all String-Based Commands.md
+//        String response = switch (tokens[0]) {
+//            case "LOWERCASE" -> "OK " + argument.toLowerCase();
+//            case "UPPERCASE" -> "OK " + argument.toUpperCase();
+//            case "REVERSE" -> "OK " + new StringBuilder(argument).reverse();
+//            //default -> "Received: " + tokens[0] + " ERROR UNKNOWN COMMAND";
+//            default -> "ERROR UNKNOWN COMMAND";
+//        };
+
 
         // Handle all String-Based Commands.md
         String response = switch (tokens[0]) {
@@ -264,17 +289,17 @@ public class ServerThreadCorrected extends Thread {
         //Print clients Request
         //System.out.printf("Request from Praktika1c2.Client %d : ",id);
         //Syslog.log(1, 7, "Request from Praktika1c2.Client %d : " + id);
-        for (String s : tokens) {
-            //Syslog.log(1, 7, s);
-            System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, s);
-            // System.out.printf("%s ",s);
-        }
+//        for (String s : tokens) {
+//            //Syslog.log(1, 7, s);
+//            System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, s);
+//            // System.out.printf("%s ",s);
+//        }
         System.out.println();
-        System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"Request from Praktika1c2.Client: " + id);
+        System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"Request from Praktika1c2.Client " + id + tokens[0]);
 
         //Print Praktika1c2.Server Answer
         //Syslog.log(1, 7, "Response to Praktika1c2.Client" + id + " " + response + "\n");
-        System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, "Response to Praktika1c2.Client" + id + " " + response);
+        System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, "Response to Praktika1c2.Client " + id + " " + response);
         return true;
     }
 
