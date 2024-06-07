@@ -122,7 +122,7 @@ public class FileCopyClient extends Thread {
     Map<Integer, FCpacket> unsent = packagesSync;
 
     // Stack sent packages
-    Map<Integer, FCpacket> sent = HashMap.newHashMap(packagesSync.size());
+    Map<Integer, FCpacket> sent = new HashMap<Integer, FCpacket>(packagesSync.size());//HashMap.newHashMap(packagesSync.size());
 
     int sequenceCounter = 0;
 
