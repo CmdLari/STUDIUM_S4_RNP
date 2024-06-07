@@ -71,14 +71,21 @@ public class ServerThreadCorrected extends Thread {
             this.out = out;
 
             int currentCharCode; // the byte-representation of character is interpreted as integer, therefore int = char (in UNICODE)
-            boolean msgContains_r = false ;
+            boolean msgContains_r = false;
 
             // as long as these server thread is connected to some client.
             while (!socket.isClosed() && running && runtime) {
 
                 // As long as there are chars to reade in the buffer,
                 // read chars/byte to msgBuffer
-                while (bufferedReader.ready() && msgBuffer.position() < MAX_MSG_LENGTH) {
+
+                // Debugging für Arme...
+                //System.out.printf("Buffer ready? %b", bufferedReader.ready());
+
+                // If there is nothing to read, loop instantly
+                if(!bufferedReader.ready()) break;
+
+                while ( msgBuffer.position() < MAX_MSG_LENGTH) {
 
                     //Read current byte/Charakter
                     currentCharCode = bufferedReader.read();
@@ -88,13 +95,14 @@ public class ServerThreadCorrected extends Thread {
                         break;
                     }
 
-                    // is \r read ?
+                    // is backslash r read ?
                     if (currentCharCode != Character.codePointOf("\r")) {
                         msgContains_r = true;
                     }
 
                     msgBuffer.put((byte) currentCharCode);
                 }
+
 
                 // Proceed message
                 if (msgContains_r) {
@@ -109,6 +117,7 @@ public class ServerThreadCorrected extends Thread {
                         System.out.printf("Pity - syslog got some problems while proceeding the message...\n%s\n", se.getMessage());
                     }
                 }
+
 
                 // Delete the old messageBuffer and create a new one. Buffer.Clear doesn't remove content.
                 msgBuffer = ByteBuffer.allocate(MAX_MSG_LENGTH);
@@ -131,8 +140,8 @@ public class ServerThreadCorrected extends Thread {
         try {
             Syslog.log(1, 7, "Praktika1c2.Client %d timed out. " + id);
         } catch (SyslogException se) {
-            System.out.printf("Pity - Error occurred while logging the un-subscription from server \n %s\n",se.getMessage());
-        }finally {
+            System.out.printf("Pity - Error occurred while logging the un-subscription from server \n %s\n", se.getMessage());
+        } finally {
             Server.clientClosed();
         }
 
@@ -151,7 +160,7 @@ public class ServerThreadCorrected extends Thread {
 
     /**
      * Processes the msg, provided no \r is included.
-     *
+     * <p>
      * Every Successful command is acknowledged with OK
      * If interpretation of the message fails, it is acknowledged with ERROR
      *

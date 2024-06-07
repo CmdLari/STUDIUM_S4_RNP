@@ -9,12 +9,12 @@ import java.util.List;
 public class Server {
 public static final int MAX_CLIENTS_NUMBER = 3;
 public static final int MAX_LENGTH = 255;
-public static int clientCounter=0;
+public static short clientCounter=0;
 private static final String helperString ="";
 private static ServerSocket serverSocket;
 private static boolean acceptNewConnections = true ; // Needed to handle SHUTDOWN command
 
-private static List<ServerThread> clients;
+private static List<ServerThreadCorrected> clients;
 
 
     /*
@@ -31,7 +31,7 @@ private static List<ServerThread> clients;
         int port = Integer.parseInt(args[0]);
 
         clients = new ArrayList<>();
-        ServerThread currentServerthread;
+        ServerThreadCorrected currentServerthread;
 
         boolean serverSocketClosed = false;
 
@@ -60,7 +60,7 @@ private static List<ServerThread> clients;
                         System.out.printf("Number of clients: %2d\n",clientCounter);
 
                         // Create a new Praktika1c2.ServerThread to serve clients requests
-                        currentServerthread = new ServerThread(s,clientCounter);
+                        currentServerthread = new ServerThreadCorrected(s,clientCounter);
                         currentServerthread.start();
                         clients.add(currentServerthread); // Collect all clients to Handle Shutdown Command.
                         if (clientCounter < MAX_CLIENTS_NUMBER){
@@ -105,7 +105,7 @@ private static List<ServerThread> clients;
                 if (clientCounter <= 0) {
                     System.exit(0);
                 }
-            } else if ((acceptNewConnections)) {
+            } else  {
                 clientCounter--;
                 System.out.printf("Number of clients: %2d\n", clientCounter);
             }
@@ -129,7 +129,7 @@ private static List<ServerThread> clients;
     /**
      * A Praktika1c2.Client call this methode to the server to initialize the SHUTDOWN procedure.
      * First of all, the server refuses new connections.
-     * Then the Praktika1c2.Server tell all the ServerThreads to start the 30-sec timer.
+     * Then the Praktika1c2.Server tell all the ServerThreadCorrected to start the 30-sec timer.
      */
     public static void handleShutdownCommand(){
         // Stop this server from accept new Connections
@@ -137,8 +137,8 @@ private static List<ServerThread> clients;
             acceptNewConnections = false;
         }
 
-        // Tell all existing ServerThreads to terminate within SHUTDOWN_DELAY if no command are received.
-        for(ServerThread st : clients){
+        // Tell all existing ServerThreadCorrected to terminate within SHUTDOWN_DELAY if no command are received.
+        for(ServerThreadCorrected st : clients){
             st.initializeShutdownTimer();
         }
         try{
