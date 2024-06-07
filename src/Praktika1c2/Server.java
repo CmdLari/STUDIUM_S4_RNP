@@ -141,10 +141,14 @@ private static List<ServerThreadCorrected> clients;
         for(ServerThreadCorrected st : clients){
             st.initializeShutdownTimer();
         }
+
         try{
+
             serverSocket.close();
-            if (clientCounter==0){
-                System.exit(0);}}
+            //if(clients.isEmpty()){ System.exit(0);}
+            if (clientCounter==0){ System.exit(0);}
+        }
+
         catch (IOException iox){
             System.out.println("Problem shutting down the server.");
         }

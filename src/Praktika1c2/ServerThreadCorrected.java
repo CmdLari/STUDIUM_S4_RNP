@@ -239,20 +239,21 @@ public class ServerThreadCorrected extends Thread {
                     return true;
                 }
             } else { // No Password given, or to many arguments
-                out.printf("%s", "SHUTDOWN command incorrect [needs cmd + password]");
+                out.printf("%s", " ERROR SHUTDOWN command incorrect [needs cmd + password]");
                 out.flush();
                 //Syslog.log(1, 7, "SHUTDOWN command incorrect [needs cmd + password]");
-                System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, "SHUTDOWN command incorrect [needs cmd + password]");
+                System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, "ERROR SHUTDOWN command incorrect [needs cmd + password]");
                 return true;
             }
         }
 
         // Handle all String-Based Commands.md
         String response = switch (tokens[0]) {
-            case "LOWERCASE" -> "OK >> " + tokens[1].toLowerCase();
-            case "UPPERCASE" -> "OK >> " + tokens[1].toUpperCase();
-            case "REVERSE" -> "OK >> " + new StringBuilder(tokens[1]).reverse();
-            default -> "Received: " + tokens[0] + " ERROR UNKNOWN COMMAND";
+            case "LOWERCASE" -> "OK " + tokens[1].toLowerCase();
+            case "UPPERCASE" -> "OK " + tokens[1].toUpperCase();
+            case "REVERSE" -> "OK " + new StringBuilder(tokens[1]).reverse();
+            //default -> "Received: " + tokens[0] + " ERROR UNKNOWN COMMAND";
+            default -> "ERROR UNKNOWN COMMAND";
         };
 
 
@@ -263,13 +264,13 @@ public class ServerThreadCorrected extends Thread {
         //Print clients Request
         //System.out.printf("Request from Praktika1c2.Client %d : ",id);
         //Syslog.log(1, 7, "Request from Praktika1c2.Client %d : " + id);
-        System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"Request from Praktika1c2.Client: " + id);
         for (String s : tokens) {
             //Syslog.log(1, 7, s);
             System.out.printf("fac:%d ,lvl:%d, %s\n",1, 7, s);
             // System.out.printf("%s ",s);
         }
         System.out.println();
+        System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"Request from Praktika1c2.Client: " + id);
 
         //Print Praktika1c2.Server Answer
         //Syslog.log(1, 7, "Response to Praktika1c2.Client" + id + " " + response + "\n");
