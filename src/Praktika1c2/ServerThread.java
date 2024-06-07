@@ -218,7 +218,7 @@ public class ServerThread extends Thread {
             }
         }
 
-        // Handle all String-Based Commands
+        // Handle all String-Based Commands.md
         response = switch (tokens[0]) {
             case "LOWERCASE" -> "OK >> " + tokens[1].toLowerCase();
             case "UPPERCASE" -> "OK >> " + tokens[1].toUpperCase();

@@ -29,6 +29,7 @@ Anforderungen an den ServerThread:
 import java.io.*;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -41,7 +42,8 @@ public class ServerThreadCorrected extends Thread {
     private static final String PASSWORD = "666"; // Streng geheimes Passwort um den Server abzuschalten => TODO: move to server
     private final short id;
     protected Socket socket;
-    ByteBuffer msgBuffer; // Buffer for a single Message
+    //ByteBuffer msgBuffer; // Buffer for a single Message
+    CharBuffer msgBuffer;
 
     private boolean running = true; /* Variables needed to handle Shutdown, set by BYE-Command */
     private boolean runtime = true; /* Variables needed to handle Shutdown, set by Shutdown-timeOut */
@@ -54,6 +56,8 @@ public class ServerThreadCorrected extends Thread {
     public ServerThreadCorrected(Socket clientSocket, short id) {
         this.id = id;
         this.socket = clientSocket;
+        //msgBuffer = ByteBuffer.allocate(MAX_MSG_LENGTH);
+        msgBuffer = CharBuffer.allocate(MAX_MSG_LENGTH);
     }
 
     @Override
@@ -76,6 +80,10 @@ public class ServerThreadCorrected extends Thread {
             // as long as these server thread is connected to some client.
             while (!socket.isClosed() && running && runtime) {
 
+                // Debugging für Arme...
+                //System.out.printf("Bedingungen für dauerhafte schleife:  %b", bufferedReader.ready());
+
+
                 // As long as there are chars to reade in the buffer,
                 // read chars/byte to msgBuffer
 
@@ -83,34 +91,58 @@ public class ServerThreadCorrected extends Thread {
                 //System.out.printf("Buffer ready? %b", bufferedReader.ready());
 
                 // If there is nothing to read, loop instantly
-                if(!bufferedReader.ready()) break;
-
+                if(!bufferedReader.ready()) continue;
+                msgBuffer.position(0);
                 while ( msgBuffer.position() < MAX_MSG_LENGTH) {
 
                     //Read current byte/Charakter
                     currentCharCode = bufferedReader.read();
 
                     // Message has ended, leaf while-loop.
-                    if (currentCharCode != Character.codePointOf("\n")) {
+                    if ((char)currentCharCode == '\n'){//Character.codePointOf("\n")) {
+                        //debugging für Arme
+                        //System.out.printf("\tEnde einer Nachricht \\n gelesen\n");
                         break;
                     }
 
                     // is backslash r read ?
-                    if (currentCharCode != Character.codePointOf("\r")) {
+                    if ((char)currentCharCode == '\r'){//Character.codePointOf("\r")) {
                         msgContains_r = true;
+                        msgBuffer.put('\\');
+                        msgBuffer.put('r');
+                        continue;
+                        //debugging für Arme
+                        //System.out.printf("\tHabe ein \\r gelesen\n");
                     }
 
-                    msgBuffer.put((byte) currentCharCode);
+                    //debugging für Arme
+                    //System.out.printf("\tHabe ein \"%s\" gelesen\n",(char)currentCharCode);
+
+                    //msgBuffer.put((byte)currentCharCode);
+                    msgBuffer.put((char)currentCharCode);
                 }
+
+
+                // MSG Buffer ist gefüllt
+//                int length = msgBuffer.length();
+//                int pos = msgBuffer.position();
+//                msgBuffer.flip();
+//                String test = msgBuffer.toString();
+//                System.out.printf("Nachricht ist: \"%s\"\n",test);
+//                System.out.printf("\tPosition ist: %d\n",pos);
+//                System.out.printf("\tLänge ist: %d\n",length);
+
+                msgBuffer.flip();
+                String msg = msgBuffer.toString();
 
 
                 // Proceed message
                 if (msgContains_r) {
                     // Error case - msg contains \r
-                    sendErrorMsg(msgBuffer);
+                    sendErrorMsg(msg);
                 } else {
 
-                    String msg = StandardCharsets.UTF_8.decode(msgBuffer).toString();
+                     //msg = StandardCharsets.UTF_8.decode(msgBuffer).toString();
 //                    try {
 //                        running = processMsg(msg);
 //                    } catch (SyslogException se) {
@@ -121,7 +153,8 @@ public class ServerThreadCorrected extends Thread {
 
 
                 // Delete the old messageBuffer and create a new one. Buffer.Clear doesn't remove content.
-                msgBuffer = ByteBuffer.allocate(MAX_MSG_LENGTH);
+                //msgBuffer = ByteBuffer.allocate(MAX_MSG_LENGTH);
+                msgBuffer = CharBuffer.allocate(MAX_MSG_LENGTH);
                 msgContains_r = false;
 
                 // is the Shutdowntimer already set?
@@ -145,7 +178,7 @@ public class ServerThreadCorrected extends Thread {
 //        } finally {
 //            Server.clientClosed();
 //        }
-        System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"Praktika1c2.Client %d timed out. " + id);
+        System.out.printf("fac:%d ,lvl:%d, %s\n",1,7,"Praktika1c2.Client " + id + " timed out. ");
         Server.clientClosed();
     }
 
@@ -153,9 +186,9 @@ public class ServerThreadCorrected extends Thread {
     /**
      * Send an error Messesage to client.
      *
-     * @param msgBuffer - inhalt der fehlerhaften nachricht
+     * @param msg - inhalt der fehlerhaften nachricht
      */
-    private void sendErrorMsg(ByteBuffer msgBuffer) {
+    private void sendErrorMsg(String msg) {
         out.printf("ERROR \"%s\" contains \\r\n", msgBuffer);
         out.flush();
     }
@@ -214,7 +247,7 @@ public class ServerThreadCorrected extends Thread {
             }
         }
 
-        // Handle all String-Based Commands
+        // Handle all String-Based Commands.md
         String response = switch (tokens[0]) {
             case "LOWERCASE" -> "OK >> " + tokens[1].toLowerCase();
             case "UPPERCASE" -> "OK >> " + tokens[1].toUpperCase();
