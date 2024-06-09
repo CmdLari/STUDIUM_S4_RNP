@@ -49,10 +49,14 @@ public class FileCopyClient extends Thread {
 
     DatagramSocket socket;
 
-    long oldRTT = 0;
+    long oldRTT = timeoutValue;
     long oldJitter = 0;
     Map<Long, FCpacket> allPackages; // Synchronisierte Liste aller Pakete
     long totalPackageCount = 0;
+
+    // Hilfsliste für fehlersuche
+    List<Long> ackListListenerThread = new ArrayList<>();
+    List<Long> ackListackHandler = new ArrayList<>();
 
 
 
@@ -97,25 +101,31 @@ public class FileCopyClient extends Thread {
             fillSendBuffer();
         }
 
-            // Für alle Pakete...
-            while (!allPackages.isEmpty()) {
 
 
-                synchronized (sendBuffer) {
-                    if (sendBuffer.size() >= windowSize) {
-                        sendBuffer.wait();
-                    }
-                    fillSendBuffer();
-                }
+        // Für alle Pakete...
+        //while (!allPackages.isEmpty()) {
+        while (sendBase<totalPackageCount) {
 
-                System.out.printf("FCC:runFileCopyClient() - Loop: Verbleibende Pakete: %d\n", allPackages.size());
+
+//            synchronized (sendBuffer) {
+//                if (sendBuffer.size() >= windowSize) {
+//                    sendBuffer.wait();
+//                }
+            fillSendBuffer();
+
+
+            System.out.printf("FCC: runFileCopyClient() - Loop: Verbleibende Pakete: %d\n", allPackages.size());
+
+            System.out.printf("Erhaltene ACKs: %s\n",ackListListenerThread.stream().map(Object::toString).collect(Collectors.joining(", ")));
+
 
 //            for (Map.Entry<Long,FCpacket> entry : allPackages.entrySet()){
 //                System.err.printf("\tSeqNummer: %d in Map enthalten, ACK %b\n",entry.getKey(),entry.getValue().isValidACK());
 //            }
 
-                sleep(500);
-            }
+            sleep(500);
+        }
 
         // Alles Gesendet und Bestättigt - beende den ackReceiver
         ackReceiver.interrupt();
@@ -136,11 +146,13 @@ public class FileCopyClient extends Thread {
      *
      * @param ackPaket
      */
-    private void handleACK(FCpacket ackPaket) {
+    private synchronized void handleACK(FCpacket ackPaket) {
         synchronized (sendBuffer) {
             long ackSeqNum = ackPaket.getSeqNum();
-            FCpacket currentPack;
 
+            ackListackHandler.add(ackSeqNum);
+
+            FCpacket currentPack;
 
             if (TEST_OUTPUT_MODE) {
                 System.err.printf("\tFCC: handleACK(): behandle ACK für %d \n", ackSeqNum);
@@ -151,13 +163,11 @@ public class FileCopyClient extends Thread {
             if (sendBuffer.containsKey(ackSeqNum)) {
 
                 // Hole, das Bestätige packet aus dem sendBuffer
-                //currentPack = sendBuffer.stream().filter(fCpacket -> fCpacket.getSeqNum() == ackSeqNum).findFirst().orElseThrow(NoSuchElementException::new);
                 currentPack = sendBuffer.get(ackSeqNum);
-
 
                 // Halte den Timer an,
                 // TODO - ??? Zeitmessung, Zeitspanne vom Start bis zur ankunft hier messen => Für RRT berechnung ...
-                computeTimeoutValue( System.nanoTime()-currentPack.getTimestamp());
+                computeTimeoutValue(System.nanoTime() - currentPack.getTimestamp());
                 cancelTimer(currentPack);
 
                 // Bestätige den Erfolgreichen Empfang
@@ -173,26 +183,8 @@ public class FileCopyClient extends Thread {
                 1. bestätigt wurden,
                 2. deren SeqNum kleiner sind als die gerade bestätigte SeqNum
                 */
-
-                    /*Eigener Set-orientier Code ==> Schlecht, FG,2024-06-09 !*/
-//                sendBuffer.removeAll(
-//                        sendBuffer.stream().filter(FCpacket::isValidACK)
-//                                .filter(p -> p.getSeqNum() <= ackSeqNum)
-//                                .collect(Collectors.toSet())
-//                );
-
-
-                    /* EIgener TreeMap-orientierter Code,==> Besser, FG,2024-06-09   */
-//               while (iter.hasNext()){
-//                    Map.Entry<Long,FCpacket> bufferItem = iter.next();
-//                    if(bufferItem.getValue().isValidACK() && bufferItem.getKey()<ackSeqNum){
-//                        iter.remove();
-//                    }
-//                }
-
                     /* IntelliSense generierter TreeMap-orientierter Code,==> Besser, FG,2024-06-09   */
                     sendBuffer.entrySet().removeIf(bufferItem -> bufferItem.getValue().isValidACK() && bufferItem.getKey() <= ackSeqNum);
-                    //sendBuffer.entrySet().removeIf(bufferItem -> bufferItem.getValue().isValidACK());
 
 
                     // Hole aus dem sendBuffer die Kleinste SeqNum, die noch nicht bestätigt wurde
@@ -200,30 +192,13 @@ public class FileCopyClient extends Thread {
                     if (!sendBuffer.isEmpty()) {
                         // Fall => Des Sendbuffer enthält noch pakete
                         lowestSeqNum = sendBuffer.firstKey();
-                        // Muss False sein ! => da packet darf noch nicht bestätigt sein.
-//                    if (sendBuffer.get(lowestSeqNum).isValidACK()) {
-//                        throw new RuntimeException("Logik-Fehler - die Kleinste SeqNum im Sendbuffer ist schon bestättigt");
-//                    }
                     }
 
                     sendBase = lowestSeqNum;
-//                if (TEST_OUTPUT_MODE) {
-//                    System.err.printf("\t\tFCC: handleACK(): neue Sendbase ist %d \n", sendBase);
-//                }
 
-                    /*Eigener Set-orientier Code ==> Schlecht, FG,2024-06-09 !*/
-//                Optional<FCpacket> fund = sendBuffer.stream().min(Comparator.comparing(FCpacket::getSeqNum));//.orElse(sendBase+windowSize);
-//                fund.ifPresent(fCpacket -> sendBase = fCpacket.getSeqNum());
-
-
-                    allPackages.remove(ackSeqNum); // Entferne das Bestätigte packet aus der Liste aller Paket.
-
+                   // allPackages.remove(ackSeqNum); // Entferne das Bestätigte packet aus der Liste aller Paket.
 
                     sendBuffer.notify();
-
-
-                    // Fülle den sendBuffer wieder auf.
-                    //fillSendBuffer();
                 }
 
             } else {
@@ -234,8 +209,6 @@ public class FileCopyClient extends Thread {
             }
 
         }
-
-
 
 
     }
@@ -250,22 +223,11 @@ public class FileCopyClient extends Thread {
         FCpacket currentPkg;
         DatagramPacket currentDataGramm;
 
-//        if (TEST_OUTPUT_MODE) {
-//            System.out.printf("FCC: fillSendBuffer(): befülle den Buffer \n");
-//        }
-
-        //while (sendBuffer.size() < windowSize && nextSeqNum < totalPackageCount) {
-
-
         while (nextSeqNum < sendBase + windowSize && nextSeqNum < totalPackageCount) {
 
             currentPkg = allPackages.get(nextSeqNum);
 
             try {
-
-                if(currentPkg==null){
-                    System.out.printf("Grütze");
-                }
 
                 currentDataGramm = new DatagramPacket(currentPkg.getSeqNumBytesAndData(),
                         currentPkg.getSeqNumBytesAndData().length,
@@ -281,35 +243,8 @@ public class FileCopyClient extends Thread {
 
                 nextSeqNum++;
 
-//                if (TEST_OUTPUT_MODE) {
-//                    System.out.printf("\tFCC: fillSendBuffer(): Sende paket %d \n", nextSeqNum);
-//                }
-
             } catch (UnknownHostException uhe) {
                 System.err.printf("Pity - fail to connect to given host %s\n%s\n", servername, uhe.getMessage());
-            } catch (IOException ioe) {
-                System.err.printf("Pity - fail to send to given host %s\n%s\n", servername, ioe.getMessage());
-            }
-        }
-    }
-
-
-    /**
-     * Kleiner Thread, der einfach nur ein Paket zum FC Server werfen soll.
-     * weil die Send-Operation Blocking ist, und der restliche Programmbetrieb
-     * nicht durch ein einzelnes Packet gestört werden soll
-     */
-    private class SenderThread extends Thread {
-        DatagramPacket dp;
-
-        public SenderThread(DatagramPacket datagram) {
-            this.dp = datagram;
-        }
-
-        @Override
-        public void run() {
-            try {
-                socket.send(dp);
             } catch (IOException ioe) {
                 System.err.printf("Pity - fail to send to given host %s\n%s\n", servername, ioe.getMessage());
             }
@@ -325,8 +260,7 @@ public class FileCopyClient extends Thread {
     private class ListenerThread extends Thread {
 
         DatagramPacket rcvDatagramm;
-        //DatagramSocket listenerSockert;
-        FileCopyClient fc;
+       FileCopyClient fc;
 
         byte[] rcvByteBuffer = new byte[UDP_PACKET_SIZE];
 
@@ -342,24 +276,23 @@ public class FileCopyClient extends Thread {
             //    weiterer Thread:
             //    2.1 ACK für package x ein lesen
             //    2.2 in der Liste Aller Packages x als validACK setzen....
-            System.out.printf("ListenerThread Startet and running \n");
+            rcvByteBuffer = new byte[UDP_PACKET_SIZE];
             rcvDatagramm = new DatagramPacket(rcvByteBuffer, UDP_PACKET_SIZE);
             FCpacket rcvFCpacket;
 
-
             while (!isInterrupted()) {
                 try {
-                    //listenerSockert.receive(rcvDatagramm);
                     fc.socket.receive(rcvDatagramm);
                     rcvFCpacket = new FCpacket(rcvByteBuffer, UDP_PACKET_SIZE);
 
-//                    if (TEST_OUTPUT_MODE) {
-//                        System.out.printf("FCC: ListenerThread: Erhalte Antwort vom FCServer für %d \n", rcvFCpacket.getSeqNum());
-//                    }
+                    ackListListenerThread.add(rcvFCpacket.getSeqNum());
 
                     fc.handleACK(rcvFCpacket);
 
 
+
+
+                    rcvByteBuffer = new byte[UDP_PACKET_SIZE];
                 } catch (IOException ioe) {
                     throw new RuntimeException(String.format("Pity - ListenerSocket can not receive response\n%s\n", ioe.getMessage()));
                 }
@@ -370,73 +303,6 @@ public class FileCopyClient extends Thread {
         }
 
     }
-
-
-    public void SendAllPackages() throws SocketException {
-
-        //THREADS HERE
-
-        // Stack unsent packages
-        Map<Long, FCpacket> unsent = allPackages;
-
-        // Stack sent packages
-        Map<Integer, FCpacket> sent = new HashMap<Integer, FCpacket>(allPackages.size());//HashMap.newHashMap(packagesSync.size());
-
-        int sequenceCounter = 0;
-
-        FCpacket sentPack;
-
-        System.out.println(unsent.get(0).toString());
-
-        //      // Socket einmal erstellen, ohne Port und IP -> Das machen die Pakete
-        DatagramSocket socket = null;
-        try {
-            socket = new DatagramSocket();
-        } catch (SocketException se) {
-            System.out.printf("Schade - beim erzeugen des Sockets ist was schiefgegangen\n\t%s", se.getMessage());
-        }
-
-
-        /// send to server + wait for ack
-        while (!allPackages.isEmpty()) {
-            // Sending
-
-            // package to sent
-            sentPack = allPackages.get(sequenceCounter);
-
-            // DEBUGGING FÜR ARME
-            System.out.printf("PackageNr: %d, PackageLen: %d\n", sequenceCounter, sentPack.getLen());
-            // Socket
-
-
-            try {
-                // Port and Host
-
-                DatagramPacket toSend = new DatagramPacket(sentPack.getSeqNumBytesAndData(),
-                        sentPack.getSeqNumBytesAndData().length,
-                        InetAddress.getByName(servername),
-                        SERVER_PORT);
-
-                socket.send(toSend);
-
-                // Timer des Pakets Starten ....
-
-
-            } catch (SocketException e) {
-                System.out.printf("Schade - beim senden ist was schiefgegangen...\n %s\n", e.getMessage());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-
-            // update stacks and counter
-            sent.put(sequenceCounter, sentPack);
-            allPackages.remove(sequenceCounter);
-            sequenceCounter++;
-        }
-
-    }
-
 
     // 1. Send Control Package (explicitly or implicitly)
     // 2. Wait for Ack
@@ -471,7 +337,7 @@ public class FileCopyClient extends Thread {
 
             byte[] currentBuffer = new byte[UDP_PACKET_SIZE - 8];
 
-            //int pgkCounter = 1;
+
             long pgkCounter = 1;
 
             int offset = 0;
@@ -481,22 +347,14 @@ public class FileCopyClient extends Thread {
             File file = new File(sourcePath);
             long fileLength = file.length();
 
-            FCpacket controllPkg = makeControlPacket();
+            FCpacket controlPkg = makeControlPacket();
 
-            packages.put(0L, controllPkg);
-
-//      Debugging für Arme
-//      System.out.println(sourcePath);
-//      System.out.printf("File length: %d\n", fileLength);
+            packages.put(0L, controlPkg);
 
 
             while (cursor < fileLength) {
 
                 actualLength = inputStream.read(currentBuffer, offset, UDP_PACKET_SIZE - 8);
-
-//      Debugging für Arme
-//      System.out.printf("Cursor: %d - Package: %d - Offset: %d - Actual Length: %d\n", cursor, pgkCounter,offset,actualLength);
-
                 cursor += actualLength;
                 FCpacket currentPkg = new FCpacket(pgkCounter, currentBuffer, actualLength);
                 packages.put(pgkCounter, currentPkg);
@@ -505,7 +363,6 @@ public class FileCopyClient extends Thread {
             }
 
             allPackages = Collections.synchronizedMap(packages);
-
             totalPackageCount = packages.size();
 
         } catch (IOException e) {
@@ -534,6 +391,9 @@ public class FileCopyClient extends Thread {
 
     /**
      * Implementation specific task performed at timeout
+     * 1. Recalc the TimeoutValue
+     * 2. Resend Package
+     *
      */
     public void timeoutTask(long seqNum) {
 
@@ -543,7 +403,6 @@ public class FileCopyClient extends Thread {
         currentPkg = sendBuffer.get(seqNum);
 
         timeoutValue = 2 * timeoutValue;
-
 
         if (TEST_OUTPUT_MODE) {
             System.out.printf("\t FCC: TIME-OUT for SeqNum: %d - resend \n", seqNum);
@@ -570,9 +429,6 @@ public class FileCopyClient extends Thread {
         }
 
 
-
-
-
     }
 
 
@@ -582,11 +438,11 @@ public class FileCopyClient extends Thread {
     public void computeTimeoutValue(long sampleRTT) {
 
         double x = 0.25;
-        double y = x/2;
+        double y = x / 2;
 
-        double expRTT = (1-y) * oldRTT + y * sampleRTT ;
+        double expRTT = (1 - y) * oldRTT + y * sampleRTT;
 
-        double jitter = (1-x) * oldJitter + x*Math.abs(sampleRTT-oldRTT);
+        double jitter = (1 - x) * oldJitter + x * Math.abs(sampleRTT - oldRTT);
 
 
         timeoutValue = oldRTT + 4 * oldJitter;
@@ -643,9 +499,6 @@ public class FileCopyClient extends Thread {
 
 
         myClient.runFileCopyClient();
-
-
-//    System.out.println(myClient.packagesSync);
 
 
     }
