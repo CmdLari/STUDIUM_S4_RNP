@@ -42,10 +42,11 @@ public class FileCopyClient extends Thread {
     private long sendBase = 1;
     private long nextSeqNum = 1;
 
-    private Set<FCpacket> sendBuffer = new HashSet<>();
+    //private Set<FCpacket> sendBuffer = new HashSet<>();
+    private TreeMap<Long,FCpacket> sendBuffer = new TreeMap<>();
     DatagramSocket socket;
 
-    Map<Integer, FCpacket> allPackages; // Synchronisierte Liste aller Pakete
+    Map<Long, FCpacket> allPackages; // Synchronisierte Liste aller Pakete
 
 
     // Constructor
@@ -107,6 +108,9 @@ public class FileCopyClient extends Thread {
      * Bereinige den SendBuffer = verschiebe das "Sender window"
      * Entferne die bestätigten packte
      * und lasse den sendbuffer neu befüllen
+     *
+     * Synchronisierte Methode => Immer nur einer darf diese Methode auf einmal ausführe!
+     *
      * @param ackPaket
      */
     private synchronized void handleACK(FCpacket ackPaket) {
@@ -115,16 +119,17 @@ public class FileCopyClient extends Thread {
         FCpacket currentPack;
 
         // Für das bestätigte Paket prüfe, ob es im window = sendBuffer ist
-        if (ackSeqNum >= sendBase && ackSeqNum < sendBase + windowSize) {
+        //if (ackSeqNum >= sendBase && ackSeqNum < sendBase + windowSize) {
+        if (sendBuffer.containsKey(ackSeqNum)) {
 
             // Hole, das Bestätige packet aus dem sendBuffer
-            currentPack = sendBuffer.stream().filter(fCpacket -> fCpacket.getSeqNum() == ackSeqNum).findFirst().orElseThrow(NoSuchElementException::new);
+            //currentPack = sendBuffer.stream().filter(fCpacket -> fCpacket.getSeqNum() == ackSeqNum).findFirst().orElseThrow(NoSuchElementException::new);
+            currentPack = sendBuffer.get(ackSeqNum);
 
             // Halte den Timer an,
             // TODO - ??? Zeitmessung, Zeitspanne vom Start bis zur ankunft hier messen => Für RRT berechnung ...
-            currentPack.getTimer().interrupt();
+            //currentPack.getTimer().interrupt();
             cancelTimer(currentPack);
-
 
             // Bestätige den Erfolgreichen Empfang
             currentPack.setValidACK(true);
@@ -132,20 +137,53 @@ public class FileCopyClient extends Thread {
             // Ist das bestätigte Packet gleich der sendBase?
             if (ackSeqNum == sendBase) {
 
-                // Entferne alle Packte aus dem sendBuffer, welche
-                // 1. bestätigt wurden,
-                // 2. deren SeqNum kleiner sind als die gerade bestätigte SeqNum
-                sendBuffer.removeAll(
-                        sendBuffer.stream().filter(FCpacket::isValidACK)
-                                .filter(p -> p.getSeqNum() <= ackSeqNum)
-                                .collect(Collectors.toSet())
-                );
+                /*
+                Entferne alle Packte aus dem sendBuffer, welche
+                1. bestätigt wurden,
+                2. deren SeqNum kleiner sind als die gerade bestätigte SeqNum
+                */
+
+                /*Eigener Set-orientier Code ==> Schlecht, FG,2024-06-09 !*/
+//                sendBuffer.removeAll(
+//                        sendBuffer.stream().filter(FCpacket::isValidACK)
+//                                .filter(p -> p.getSeqNum() <= ackSeqNum)
+//                                .collect(Collectors.toSet())
+//                );
+
+
+                /* EIgener TreeMap-orientierter Code,==> Besser, FG,2024-06-09   */
+//               while (iter.hasNext()){
+//                    Map.Entry<Long,FCpacket> bufferItem = iter.next();
+//                    if(bufferItem.getValue().isValidACK() && bufferItem.getKey()<ackSeqNum){
+//                        iter.remove();
+//                    }
+//                }
+
+                /* IntelliSense generierter TreeMap-orientierter Code,==> Besser, FG,2024-06-09   */
+                sendBuffer.entrySet().removeIf(bufferItem -> bufferItem.getValue().isValidACK() && bufferItem.getKey() <= ackSeqNum);
+
 
                 // Hole aus dem sendBuffer die Kleinste SeqNum, die noch nicht bestätigt wurde
-                Optional<FCpacket> fund = sendBuffer.stream().min(Comparator.comparing(FCpacket::getSeqNum));//.orElse(sendBase+windowSize);
-                fund.ifPresent(fCpacket -> sendBase = fCpacket.getSeqNum());
-                // Fülle den sendBuffer wieder auf.
+                long lowestSeqNum=nextSeqNum; // Für den Fall das der Sendbuffer gerade komplett leer ist, weil alle pakete gesendet und bestätigt wurden.
+                if(!sendBuffer.isEmpty()){
+                    // Fall => Des Sendbuffer enthält noch pakete
+                    lowestSeqNum =sendBuffer.firstKey();
+                    // Muss False sein ! => da packet darf noch nicht bestätigt sein.
+                    if(sendBuffer.get(lowestSeqNum).isValidACK()){
+                        throw new RuntimeException("Logik-Fehler - die Kleinste SeqNum im Sendbuffer ist schon bestättigt");
+                    }
+                }
 
+                sendBase=lowestSeqNum;
+
+                /*Eigener Set-orientier Code ==> Schlecht, FG,2024-06-09 !*/
+//                Optional<FCpacket> fund = sendBuffer.stream().min(Comparator.comparing(FCpacket::getSeqNum));//.orElse(sendBase+windowSize);
+//                fund.ifPresent(fCpacket -> sendBase = fCpacket.getSeqNum());
+
+
+
+
+                // Fülle den sendBuffer wieder auf.
                 fillSendBuffer();
             }
 
@@ -163,8 +201,6 @@ public class FileCopyClient extends Thread {
      */
     private void fillSendBuffer() {
 
-
-
         FCpacket currentPkg;
         DatagramPacket currentDataGramm;
 
@@ -178,7 +214,9 @@ public class FileCopyClient extends Thread {
                         SERVER_PORT
                 );
                 socket.send(currentDataGramm);
-                sendBuffer.add(currentPkg);
+                //sendBuffer.add(currentPkg);
+                sendBuffer.put(nextSeqNum,currentPkg);
+
                 // TODO ???- Zeitmessung, zeitstempel setzen wenn das Packet auf reisen geht und timer start
                 startTimer(currentPkg);
 
@@ -253,7 +291,7 @@ public class FileCopyClient extends Thread {
         //THREADS HERE
 
         // Stack unsent packages
-        Map<Integer, FCpacket> unsent = allPackages;
+        Map<Long, FCpacket> unsent = allPackages;
 
         // Stack sent packages
         Map<Integer, FCpacket> sent = new HashMap<Integer, FCpacket>(allPackages.size());//HashMap.newHashMap(packagesSync.size());
@@ -337,7 +375,7 @@ public class FileCopyClient extends Thread {
      */
     private void readFile(String sourcePath) {
 
-        TreeMap<Integer, FCpacket> packages = new TreeMap<Integer, FCpacket>();
+        TreeMap<Long, FCpacket> packages = new TreeMap<Long, FCpacket>();
 
         byte[] byteArray = new byte[UDP_PACKET_SIZE - 8];
 
@@ -356,7 +394,7 @@ public class FileCopyClient extends Thread {
             File file = new File(sourcePath);
             long fileLength = file.length();
 
-            packages.put(0, makeControlPacket());
+            packages.put(0L, makeControlPacket());
 
 //      Debugging für Arme
 //      System.out.println(sourcePath);
@@ -372,7 +410,7 @@ public class FileCopyClient extends Thread {
 
                 cursor += actualLength;
                 FCpacket currentPkg = new FCpacket(pgkCounter, currentBuffer, actualLength);
-                packages.put((int) pgkCounter, currentPkg);
+                packages.put( pgkCounter, currentPkg);
                 pgkCounter++;
 
             }
