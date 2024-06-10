@@ -70,6 +70,8 @@ public class FileCopyClient extends Thread {
 
         totalPackageCount = allPackages.size();
 
+        System.out.printf("\t FCC: totalPackageCount ist : %d\n",totalPackageCount);
+
         clientSocket = new DatagramSocket(CLIENT_PORT);
 
 
@@ -83,14 +85,41 @@ public class FileCopyClient extends Thread {
         sb.addPaket(controlPkg);
         sendPackage(sb.getPkg(0));
 
-        for (long nextSeqNum = 1; nextSeqNum <= totalPackageCount ; nextSeqNum++) {
-            sb.addPaket(allPackages.get(nextSeqNum));
-            sendPackage(sb.getPkg(nextSeqNum));
+        // sendBase
+        // nextSeqNum
+        // windowSize
+
+        long nextSeqNum=1;
+//        for (nextSeqNum = 1; nextSeqNum <= totalPackageCount; nextSeqNum++) {
+//            sb.addPaket(allPackages.get(nextSeqNum));
+//            sendPackage(sb.getPkg(nextSeqNum));
+
+        System.out.printf("Schleife startet\n");
+        while (sendBase < totalPackageCount ) {
+
+            System.out.printf("Sende einen chunk von: %d Paketen \n",(sendBase+windowSize)-nextSeqNum);
+
+            if(nextSeqNum <= sendBase + windowSize && nextSeqNum < totalPackageCount+1){
+                sb.addPaket(allPackages.get(nextSeqNum));
+                sendPackage(sb.getPkg(nextSeqNum));
+                nextSeqNum++;
+            }
+
+            sendBase = sb.getLowestUnsend();
+            System.out.printf("\t FCC: SendBase ist: %d \n",sendBase);
+
         }
+
+        System.out.printf("Schleife Durchlaufen\n");
 
         allSend.set(true);
 
+
+
         ackReceiver.join();
+        //ackReceiver.interrupt();
+
+        System.out.printf("\t ACK-Receiver hat abgeschaltet...\n");
 
         clientSocket.close();
 
@@ -100,7 +129,7 @@ public class FileCopyClient extends Thread {
     }
 
 
-    private void sendPackage(FCpacket fcp){
+    private void sendPackage(FCpacket fcp) {
         try {
             DatagramPacket currentDataGramm = new DatagramPacket(fcp.getSeqNumBytesAndData(),
                     fcp.getSeqNumBytesAndData().length,
@@ -108,7 +137,6 @@ public class FileCopyClient extends Thread {
                     SERVER_PORT);
 
             clientSocket.send(currentDataGramm);
-
 
 
         } catch (IOException uhe) {
@@ -125,27 +153,32 @@ public class FileCopyClient extends Thread {
         @Override
         public void run() {
 
-            boolean ackMissing=true;
+            boolean ackMissing = true;
 
-            while (!allSend.get() || ackMissing){
+            while (!allSend.get() || ackMissing) {
+
+                if(allSend.get()){
+                    System.out.printf("Debugging\n");
+                }
+
                 byte[] udpBuffer = new byte[8];
-                DatagramPacket rcvDatagramm = new DatagramPacket(udpBuffer,udpBuffer.length);
+                DatagramPacket rcvDatagramm = new DatagramPacket(udpBuffer, udpBuffer.length);
 
-                try{
+                try {
                     clientSocket.receive(rcvDatagramm);
-                    FCpacket rcvPkg = new FCpacket(rcvDatagramm.getData(),rcvDatagramm.getLength());
+                    FCpacket rcvPkg = new FCpacket(rcvDatagramm.getData(), rcvDatagramm.getLength());
                     FCpacket ackPkg = sb.getPkg(rcvPkg.getSeqNum());
 
                     cancelTimer(ackPkg);
-                    computeTimeoutValue(System.nanoTime()- ackPkg.getTimestamp());
+                    computeTimeoutValue(System.nanoTime() - ackPkg.getTimestamp());
 
                     ackPkg.setValidACK(true);
-                }catch (IOException io){
+
+                } catch (IOException io) {
                     throw new RuntimeException();
                 }
 
                 ackMissing = sb.missingACK();
-
 
             }
 
@@ -175,10 +208,10 @@ public class FileCopyClient extends Thread {
      *
      * @param sourcePath
      */
-    private Map<Long,FCpacket> readFile(String sourcePath) {
+    private Map<Long, FCpacket> readFile(String sourcePath) {
         TreeMap<Long, FCpacket> packages = new TreeMap<Long, FCpacket>();
 
-        try (InputStream inputStream = new FileInputStream(sourcePath);){
+        try (InputStream inputStream = new FileInputStream(sourcePath);) {
 
             byte[] currentBuffer = new byte[UDP_PACKET_SIZE - 8];
             long pgkCounter = 1;
@@ -229,7 +262,7 @@ public class FileCopyClient extends Thread {
      */
     public void timeoutTask(long seqNum) {
 
-        FCpacket currentPkg= sb.getPkg(seqNum);
+        FCpacket currentPkg = sb.getPkg(seqNum);
         timeoutValue = 2 * timeoutValue;
 
         currentPkg.setTimestamp(System.nanoTime());
@@ -239,10 +272,10 @@ public class FileCopyClient extends Thread {
             System.out.printf("\t FCC: TIME-OUT for SeqNum: %d - resend \n", seqNum);
             System.out.printf("\t FCC: TIME-OUT sendbuffer contains:  \n"
                     //sendBuffer.keySet().stream().map(Object::toString).collect(Collectors.joining(","))
-                     );
+            );
         }
         try {
-        DatagramPacket currentDataGramm = new DatagramPacket(currentPkg.getSeqNumBytesAndData(),
+            DatagramPacket currentDataGramm = new DatagramPacket(currentPkg.getSeqNumBytesAndData(),
                     currentPkg.getSeqNumBytesAndData().length,
                     InetAddress.getByName(servername),
                     SERVER_PORT);

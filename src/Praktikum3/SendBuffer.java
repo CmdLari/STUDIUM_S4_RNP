@@ -29,4 +29,16 @@ public class SendBuffer {
         return _sendBuffer.values().stream().anyMatch(x->!x.isValidACK());
     }
 
+    public synchronized Long getLowestUnsend() {
+        return _sendBuffer.entrySet().stream()
+                .filter(x->!x.getValue().isValidACK())
+                .mapToLong(Map.Entry::getKey)
+                .sorted()
+                .findFirst()
+                .orElse((long)_sendBuffer.size()) ;
+    }
+
+
+
+
 }
