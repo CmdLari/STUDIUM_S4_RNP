@@ -76,6 +76,9 @@ public class FileCopyServer {
         receivedIPAddress = udpReceivePacket.getAddress();
         receivedPort = udpReceivePacket.getPort();
 
+        System.out.printf("Paket kamm von Port : %d \n",receivedPort);
+
+
         if (connectionEstablished == false) {
           // Establish new connection
           clientAdress = receivedIPAddress;
