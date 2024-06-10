@@ -110,13 +110,25 @@ public class FileCopyClient extends Thread {
 
         }
 
-        System.out.printf("Schleife Durchlaufen\n");
-
         allSend.set(true);
 
+        System.out.printf("Schleife Durchlaufen\n");
+
+        if(sb.missingACK()){
+            System.out.printf("Es gibt fehlende ACKs...\n");
+        }else{
+            System.out.printf("alles wurde ACKed...\n");
+
+        }
 
 
-        ackReceiver.join();
+
+
+        ackReceiver.interrupt();
+
+
+
+        //ackReceiver.join();
         //ackReceiver.interrupt();
 
         System.out.printf("\t ACK-Receiver hat abgeschaltet...\n");
@@ -153,36 +165,23 @@ public class FileCopyClient extends Thread {
         @Override
         public void run() {
 
-            boolean ackMissing = true;
-
-            while (!allSend.get() || ackMissing) {
-
-                if(allSend.get()){
-                    System.out.printf("Debugging\n");
+                boolean ackMissing = true;
+                while (!allSend.get() && ackMissing) {
+                    byte[] udpBuffer = new byte[8];
+                    DatagramPacket rcvDatagramm = new DatagramPacket(udpBuffer, udpBuffer.length);
+                    try {
+                        clientSocket.receive(rcvDatagramm);
+                        FCpacket rcvPkg = new FCpacket(rcvDatagramm.getData(), rcvDatagramm.getLength());
+                        FCpacket ackPkg = sb.getPkg(rcvPkg.getSeqNum());
+                        cancelTimer(ackPkg);
+                        computeTimeoutValue(System.nanoTime() - ackPkg.getTimestamp());
+                        ackPkg.setValidACK(true);
+                    } catch (IOException io) {
+                        throw new RuntimeException();
+                    }
+                    ackMissing = sb.missingACK();
                 }
-
-                byte[] udpBuffer = new byte[8];
-                DatagramPacket rcvDatagramm = new DatagramPacket(udpBuffer, udpBuffer.length);
-
-                try {
-                    clientSocket.receive(rcvDatagramm);
-                    FCpacket rcvPkg = new FCpacket(rcvDatagramm.getData(), rcvDatagramm.getLength());
-                    FCpacket ackPkg = sb.getPkg(rcvPkg.getSeqNum());
-
-                    cancelTimer(ackPkg);
-                    computeTimeoutValue(System.nanoTime() - ackPkg.getTimestamp());
-
-                    ackPkg.setValidACK(true);
-
-                } catch (IOException io) {
-                    throw new RuntimeException();
-                }
-
-                ackMissing = sb.missingACK();
-
             }
-
-        }
 
     }
 
