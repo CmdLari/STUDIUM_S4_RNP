@@ -15,7 +15,7 @@ Notwendige Argumente
 
 ```shell
 cd .\out\production\RN_Praktika\
-java Praktikum3.FileCopyClient localhost ./Resources/Testfile_100.csv ./Testfile_100.csv 2 1
+java Praktikum3.FileCopyClient localhost ./Resources/Testfile_100.csv C:/Users/fabia/Documents/4_Semester/40_Rechnernetze/30_Praktika_Uebung/RNP/out/production/RN_Praktika/Testfile_on_Server_100.csv 2 1
 ```
 
 
