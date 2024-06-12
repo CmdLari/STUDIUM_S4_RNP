@@ -8,10 +8,8 @@ package Praktikum3;
 
 import java.io.*;
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 public class FileCopyClient extends Thread {
 
@@ -47,7 +45,7 @@ public class FileCopyClient extends Thread {
     Map<Long, FCpacket> allPackages; // Synchronisierte Liste aller Pakete
     long totalPackageCount = 0;
 
-    SendBuffer sb;
+    SendBuffer sendBuffer;
 
     private final AtomicBoolean allSend = new AtomicBoolean(false);
 
@@ -66,7 +64,7 @@ public class FileCopyClient extends Thread {
 
         allPackages = readFile(sourcePath);
 
-        sb = new SendBuffer(this);
+        sendBuffer = new SendBuffer(this);
 
         totalPackageCount = allPackages.size();
 
@@ -82,8 +80,8 @@ public class FileCopyClient extends Thread {
 
         /*Create Initital controllPackage */
         FCpacket controlPkg = makeControlPacket();
-        sb.addPaket(controlPkg);
-        sendPackage(sb.getPkg(0));
+        sendBuffer.addPaket(controlPkg);
+        sendPackage(sendBuffer.getPkg(0));
 
         // sendBase
         // nextSeqNum
@@ -100,12 +98,12 @@ public class FileCopyClient extends Thread {
             System.out.printf("Sende einen chunk von: %d Paketen \n",(sendBase+windowSize)-nextSeqNum);
 
             if(nextSeqNum <= sendBase + windowSize && nextSeqNum < totalPackageCount+1){
-                sb.addPaket(allPackages.get(nextSeqNum));
-                sendPackage(sb.getPkg(nextSeqNum));
+                sendBuffer.addPaket(allPackages.get(nextSeqNum));
+                sendPackage(sendBuffer.getPkg(nextSeqNum));
                 nextSeqNum++;
             }
 
-            sendBase = sb.getLowestUnsend();
+            sendBase = sendBuffer.getLowestUnsend();
             System.out.printf("\t FCC: SendBase ist: %d \n",sendBase);
 
         }
@@ -114,7 +112,7 @@ public class FileCopyClient extends Thread {
 
         System.out.printf("Schleife Durchlaufen\n");
 
-        if(sb.missingACK()){
+        if(sendBuffer.missingACK()){
             System.out.printf("Es gibt fehlende ACKs...\n");
         }else{
             System.out.printf("alles wurde ACKed...\n");
@@ -172,14 +170,14 @@ public class FileCopyClient extends Thread {
                     try {
                         clientSocket.receive(rcvDatagramm);
                         FCpacket rcvPkg = new FCpacket(rcvDatagramm.getData(), rcvDatagramm.getLength());
-                        FCpacket ackPkg = sb.getPkg(rcvPkg.getSeqNum());
+                        FCpacket ackPkg = sendBuffer.getPkg(rcvPkg.getSeqNum());
                         cancelTimer(ackPkg);
                         computeTimeoutValue(System.nanoTime() - ackPkg.getTimestamp());
                         ackPkg.setValidACK(true);
                     } catch (IOException io) {
                         throw new RuntimeException();
                     }
-                    ackMissing = sb.missingACK();
+                    ackMissing = sendBuffer.missingACK();
                 }
             }
 
@@ -261,7 +259,7 @@ public class FileCopyClient extends Thread {
      */
     public void timeoutTask(long seqNum) {
 
-        FCpacket currentPkg = sb.getPkg(seqNum);
+        FCpacket currentPkg = sendBuffer.getPkg(seqNum);
         timeoutValue = 2 * timeoutValue;
 
         currentPkg.setTimestamp(System.nanoTime());
