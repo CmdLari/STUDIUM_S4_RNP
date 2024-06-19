@@ -34,16 +34,6 @@ public class SendBuffer {
 
     public synchronized Long getLowestUnsend() {
 
-//        System.err.printf("Länge des Sendbuffers ist: %d\n",_sendBuffer.size());
-//        System.err.printf("Sendbuffer enthält die SeqNums: %s\n",_sendBuffer.keySet().stream().map(Object::toString).collect(Collectors.joining(", ")));
-//
-//
-//        if(_sendBuffer.containsKey(1L)){
-//            System.err.printf("Das paket 1 im Sendbuffer hat isValidACK: %b\n",_sendBuffer.get(1L).isValidACK());
-//        }
-//
-//        System.err.printf("Sendbuffer enthält die SeqNums: %s\n",_sendBuffer.keySet().stream().map(Object::toString).collect(Collectors.joining(", ")));
-
         return  _sendBuffer.entrySet().stream()
                 .filter(x->!x.getValue().isValidACK())
                 .mapToLong(x->x.getKey())

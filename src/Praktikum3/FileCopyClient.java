@@ -85,13 +85,12 @@ public class FileCopyClient extends Thread {
 
         while (!controlPkg.isValidACK()){
             System.out.printf("Und wir warten...\n");
+            Thread.sleep(20);
         }
 
         long nextSeqNum=1;
 
         System.out.printf("Schleife startet\n");
-
-        int outputCounter = 0 ;
 
         while (sendBase < totalPackageCount ) {
 
@@ -102,8 +101,6 @@ public class FileCopyClient extends Thread {
             }
 
             sendBase = sendBuffer.getLowestUnsend();
-            System.err.printf("Sendbase ist: %d\n",sendBase);
-            Thread.sleep(5);
 
         }
 
@@ -238,20 +235,21 @@ public class FileCopyClient extends Thread {
         FCpacket currentPkg = sendBuffer.getPkg(seqNum);
         cancelTimer(currentPkg);
 
-        computeTimeoutValue(System.nanoTime()-currentPkg.getTimestamp());
+        //computeTimeoutValue(System.nanoTime()-currentPkg.getTimestamp());
 
+        // TODO: Den richtigen TimeOutvalue vom Timer abgreifen
         FC_Timer timer = new FC_Timer(2*timeoutValue, this, currentPkg.getSeqNum());
         currentPkg.setTimer(timer);
 
         currentPkg.setTimestamp(System.nanoTime());
         // TODO ???- Zeitmessung, zeitstempel setzen wenn das Packet auf reisen geht und timer start
         startTimer(currentPkg);
-        if (TEST_OUTPUT_MODE) {
-            System.out.printf("\t FCC: TIME-OUT for SeqNum: %d - resend \n", seqNum);
-            System.out.printf("\t FCC: TIME-OUT sendbuffer contains:  \n"
-                    //sendBuffer.keySet().stream().map(Object::toString).collect(Collectors.joining(","))
-            );
-        }
+//        if (TEST_OUTPUT_MODE) {
+//            System.out.printf("\t FCC: TIME-OUT for SeqNum: %d - resend \n", seqNum);
+//            System.out.printf("\t FCC: TIME-OUT sendbuffer contains:  \n"
+//                    //sendBuffer.keySet().stream().map(Object::toString).collect(Collectors.joining(","))
+//            );
+//        }
         try {
             DatagramPacket currentDataGramm = new DatagramPacket(currentPkg.getSeqNumBytesAndData(),
                     currentPkg.getSeqNumBytesAndData().length,
@@ -259,9 +257,9 @@ public class FileCopyClient extends Thread {
                     SERVER_PORT);
             clientSocket.send(currentDataGramm);
 
-            if (TEST_OUTPUT_MODE) {
-                System.out.printf("\tFCC: timeoutTask(): Sende paket %d \n", seqNum);
-            }
+//            if (TEST_OUTPUT_MODE) {
+//                System.out.printf("\tFCC: timeoutTask(): Sende paket %d \n", seqNum);
+//            }
 
         } catch (UnknownHostException uhe) {
             System.err.printf("Pity - timeoutTask - fail to connect to given host %s\n%s\n", servername, uhe.getMessage());

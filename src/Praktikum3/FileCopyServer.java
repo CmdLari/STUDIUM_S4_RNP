@@ -19,7 +19,7 @@ public class FileCopyServer {
   public final static boolean TEST_OUTPUT_MODE = true;
   public final static int SERVER_PORT = 23000;
   public final static int UDP_PACKET_SIZE = 1008;
-  public final static int CONNECTION_TIMEOUT = 3000; // milliseconds
+  public final static int CONNECTION_TIMEOUT = 300000; // milliseconds
   public final static long DELAY = 10; // Propagation delay in ms
 
   // -------- Parameters (will be adjusted with values in the first packet)
