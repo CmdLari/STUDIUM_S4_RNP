@@ -83,19 +83,22 @@ public class FileCopyClient extends Thread {
         sendBuffer.addPaket(controlPkg);
         sendPackage(sendBuffer.getPkg(0));
 
-        // sendBase
-        // nextSeqNum
-        // windowSize
+        while (!controlPkg.isValidACK()){
+            System.out.printf("Und wir warten...\n");
+        }
 
         long nextSeqNum=1;
-//        for (nextSeqNum = 1; nextSeqNum <= totalPackageCount; nextSeqNum++) {
-//            sb.addPaket(allPackages.get(nextSeqNum));
-//            sendPackage(sb.getPkg(nextSeqNum));
 
         System.out.printf("Schleife startet\n");
+
+        int outputCounter = 0 ;
+
         while (sendBase < totalPackageCount ) {
 
-            System.out.printf("Sende einen chunk von: %d Paketen \n",(sendBase+windowSize)-nextSeqNum);
+//            if(outputCounter==10){
+//                System.out.printf("Sende einen chunk von: %d Paketen \n",(sendBase+windowSize)-nextSeqNum);
+//
+//            }
 
             if(nextSeqNum <= sendBase + windowSize && nextSeqNum < totalPackageCount+1){
                 sendBuffer.addPaket(allPackages.get(nextSeqNum));
@@ -104,13 +107,22 @@ public class FileCopyClient extends Thread {
             }
 
             sendBase = sendBuffer.getLowestUnsend();
-            System.out.printf("\t FCC: SendBase ist: %d \n",sendBase);
+
+//            if(outputCounter==10){
+//                System.out.printf("\t FCC: SendBase ist: %d \n",sendBase);
+//                outputCounter=0;
+//            }
+//            outputCounter++;
 
         }
 
         allSend.set(true);
 
         System.out.printf("Schleife Durchlaufen\n");
+
+        //ackReceiver.interrupt();
+        ackReceiver.join();
+
 
         if(sendBuffer.missingACK()){
             System.out.printf("Es gibt fehlende ACKs...\n");
@@ -119,10 +131,6 @@ public class FileCopyClient extends Thread {
 
         }
 
-
-
-
-        ackReceiver.interrupt();
 
 
 
