@@ -95,11 +95,6 @@ public class FileCopyClient extends Thread {
 
         while (sendBase < totalPackageCount ) {
 
-//            if(outputCounter==10){
-//                System.out.printf("Sende einen chunk von: %d Paketen \n",(sendBase+windowSize)-nextSeqNum);
-//
-//            }
-
             if(nextSeqNum <= sendBase + windowSize && nextSeqNum < totalPackageCount+1){
                 sendBuffer.addPaket(allPackages.get(nextSeqNum));
                 sendPackage(sendBuffer.getPkg(nextSeqNum));
@@ -107,12 +102,8 @@ public class FileCopyClient extends Thread {
             }
 
             sendBase = sendBuffer.getLowestUnsend();
-
-//            if(outputCounter==10){
-//                System.out.printf("\t FCC: SendBase ist: %d \n",sendBase);
-//                outputCounter=0;
-//            }
-//            outputCounter++;
+            System.err.printf("Sendbase ist: %d\n",sendBase);
+            Thread.sleep(5);
 
         }
 
@@ -120,7 +111,6 @@ public class FileCopyClient extends Thread {
 
         System.out.printf("Schleife Durchlaufen\n");
 
-        //ackReceiver.interrupt();
         ackReceiver.join();
 
 
@@ -130,12 +120,6 @@ public class FileCopyClient extends Thread {
             System.out.printf("alles wurde ACKed...\n");
 
         }
-
-
-
-
-        //ackReceiver.join();
-        //ackReceiver.interrupt();
 
         System.out.printf("\t ACK-Receiver hat abgeschaltet...\n");
 
@@ -153,7 +137,6 @@ public class FileCopyClient extends Thread {
                     fcp.getSeqNumBytesAndData().length,
                     InetAddress.getByName(servername),
                     SERVER_PORT);
-
             clientSocket.send(currentDataGramm);
 
 
@@ -172,7 +155,7 @@ public class FileCopyClient extends Thread {
         public void run() {
 
                 boolean ackMissing = true;
-                while (!allSend.get() && ackMissing) {
+                while (!allSend.get() || ackMissing) {
                     byte[] udpBuffer = new byte[8];
                     DatagramPacket rcvDatagramm = new DatagramPacket(udpBuffer, udpBuffer.length);
                     try {
@@ -191,22 +174,7 @@ public class FileCopyClient extends Thread {
 
     }
 
-// 1. Send Control Package (explicitly or implicitly)
-// 2. Wait for Ack
-// 3. Loop : for all Packages
-// 3.1 SendPackage(pkg || sendBuffer[0] )
-// 3.2 Start Timer
-// 3.4 Wait for ACK ((OR Timeout))
-// 3.4.1 Remove Pkg from SendBuffer <-- new Method?
-// 3.4.2 No-ACK : TimeOut: resend (-> Loop Continue???))
-// 3.4.2.1 Increase TimeOutCounter
-// 3.5 : computeTimeoutValue
-// 3.6 CancelTimer()
-// 3.7 Put package into buffer and restart loop
-
-
 // Schreibe Statistik ....
-
 
     /**
      * Ließt das Angebene File ein, und macht direkt packet daraus und sammelt alle packete in einer Liste.
@@ -268,7 +236,12 @@ public class FileCopyClient extends Thread {
     public void timeoutTask(long seqNum) {
 
         FCpacket currentPkg = sendBuffer.getPkg(seqNum);
-        timeoutValue = 2 * timeoutValue;
+        cancelTimer(currentPkg);
+
+        computeTimeoutValue(System.nanoTime()-currentPkg.getTimestamp());
+
+        FC_Timer timer = new FC_Timer(2*timeoutValue, this, currentPkg.getSeqNum());
+        currentPkg.setTimer(timer);
 
         currentPkg.setTimestamp(System.nanoTime());
         // TODO ???- Zeitmessung, zeitstempel setzen wenn das Packet auf reisen geht und timer start

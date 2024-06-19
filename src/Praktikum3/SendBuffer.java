@@ -2,6 +2,9 @@ package Praktikum3;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.stream.Collectors;
 
 public class SendBuffer {
     private final FileCopyClient fc;
@@ -30,12 +33,23 @@ public class SendBuffer {
     }
 
     public synchronized Long getLowestUnsend() {
-        return _sendBuffer.entrySet().stream()
+
+//        System.err.printf("Länge des Sendbuffers ist: %d\n",_sendBuffer.size());
+//        System.err.printf("Sendbuffer enthält die SeqNums: %s\n",_sendBuffer.keySet().stream().map(Object::toString).collect(Collectors.joining(", ")));
+//
+//
+//        if(_sendBuffer.containsKey(1L)){
+//            System.err.printf("Das paket 1 im Sendbuffer hat isValidACK: %b\n",_sendBuffer.get(1L).isValidACK());
+//        }
+//
+//        System.err.printf("Sendbuffer enthält die SeqNums: %s\n",_sendBuffer.keySet().stream().map(Object::toString).collect(Collectors.joining(", ")));
+
+        return  _sendBuffer.entrySet().stream()
                 .filter(x->!x.getValue().isValidACK())
-                .mapToLong(Map.Entry::getKey)
+                .mapToLong(x->x.getKey())
                 .sorted()
                 .findFirst()
-                .orElse((long)_sendBuffer.size()) ;
+                .orElse((long)_sendBuffer.size()-1);
     }
 
 
