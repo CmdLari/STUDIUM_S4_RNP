@@ -47,6 +47,10 @@ public class FileCopyClient extends Thread {
 
     SendBuffer sendBuffer;
 
+    int timeoutCounter = 0;
+    int ackCounter = 0;
+    double rttSum = 0;
+
     private final AtomicBoolean allSend = new AtomicBoolean(false);
 
     // Constructor
@@ -61,6 +65,8 @@ public class FileCopyClient extends Thread {
     }
 
     public void runFileCopyClient() throws SocketException, InterruptedException {
+
+        long startTime = System.nanoTime();
 
         allPackages = readFile(sourcePath);
 
@@ -122,6 +128,10 @@ public class FileCopyClient extends Thread {
 
         clientSocket.close();
 
+        long endTime = System.nanoTime();
+        long finalTime = endTime-startTime;
+
+        double avgRTT = rttSum/ackCounter;
 
         System.out.printf("\t\t ERFOLG \t Alle Pakete überträgen und bestätigt. Beende Programm ablauf. \n");
 
@@ -162,6 +172,7 @@ public class FileCopyClient extends Thread {
                         cancelTimer(ackPkg);
                         computeTimeoutValue(System.nanoTime() - ackPkg.getTimestamp());
                         ackPkg.setValidACK(true);
+                        ackCounter++;
                     } catch (IOException io) {
                         throw new RuntimeException();
                     }
@@ -232,6 +243,8 @@ public class FileCopyClient extends Thread {
      */
     public void timeoutTask(long seqNum) {
 
+        timeoutCounter++;
+
         FCpacket currentPkg = sendBuffer.getPkg(seqNum);
         cancelTimer(currentPkg);
 
@@ -267,6 +280,8 @@ public class FileCopyClient extends Thread {
      * Computes the current timeout value (in nanoseconds)
      */
     public void computeTimeoutValue(long sampleRTT) {
+
+        rttSum+=sampleRTT;
 
         double x = 0.25;
         double y = x / 2;
@@ -335,5 +350,17 @@ public class FileCopyClient extends Thread {
 
     }
 
+    public void fileWriter(long timeTaken, double avgRTT){
+        long timeStamp = System.currentTimeMillis();
+
+        String fileName = ".\\measurements\\results_" + timeStamp + "Windowsize_"+this.windowSize +"_Errorate_"+this.serverErrorRate+".csv";
+        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(fileName, true))) {
+            bufferedWriter.write("ErrorRate: "+this.serverErrorRate+" | WindowSize: "+this.windowSize+" | Time taken: "+timeTaken+" | Number of TimeOuts: "+this.timeoutCounter+" | Number of Acks: "+this.ackCounter+" | Average RTT: "+avgRTT);
+            bufferedWriter.newLine();
+        } catch (IOException e) {
+            System.err.println("An Error occurred while writing results to file...");
+            System.err.println(e.getMessage());
+        }
+    }
 
 }
